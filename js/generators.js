@@ -637,16 +637,30 @@
     ofCat(cat) { return MAT_GENS.filter((f) => (CAT[f.name] || 'arith') === cat); },
     topics(subject) { return (subject === 'mat' ? MAT_GENS : MATHS_GENS).map((f) => f.name); },
     /* generate one question for subject ('mat'|'maths') at difficulty */
+    /* variety memory: `tpl` (look of a figure question) is not repeated inside one paper,
+       `sig` (exact content) is avoided across the recent papers kept in `history` */
+    session: { tpl: new Set(), sig: new Set(), history: new Set() },
+    beginSession(history) { G.session = { tpl: new Set(), sig: new Set(), history: new Set(history || []) }; },
+    sessionSigs() { return [...G.session.sig]; },
+    /* a question taken from the bank also counts as seen in this paper */
+    markUsed(q) { if (q.gen && q.tpl) G.session.tpl.add(q.gen + ':' + q.tpl); if (q.gen && q.sig) G.session.sig.add(q.gen + ':' + q.sig); },
     one(subject, diff, gen) {
       const list = subject === 'mat' ? MAT_GENS : MATHS_GENS;
-      for (let i = 0; i < 20; i++) {
+      const S = G.session;
+      let fallback = null;
+      for (let i = 0; i < 30; i++) {
         const f = gen || pick(list);
         let r = null;
         try { r = f(diff); } catch (e) { r = null; }
-        if (r && r.options.length === 4 && r.answer >= 0) {
-          return U.normQuestion(Object.assign(r, { subject, difficulty: diff, source: 'generated', gen: f.name, cat: r.cat || CAT[f.name] || (subject === 'mat' ? 'arith' : 'maths') }));
-        }
+        if (!(r && r.options.length === 4 && r.answer >= 0)) continue;
+        const tk = r.tpl ? f.name + ':' + r.tpl : null, sk = r.sig ? f.name + ':' + r.sig : null;
+        const clash = (tk && S.tpl.has(tk) && i < 22) || (sk && (S.sig.has(sk) || (S.history.has(sk) && i < 14)));
+        const q = () => U.normQuestion(Object.assign(r, { subject, difficulty: diff, source: 'generated', gen: f.name, cat: r.cat || CAT[f.name] || (subject === 'mat' ? 'arith' : 'maths') }));
+        if (clash) { if (!fallback && !(sk && S.sig.has(sk))) fallback = [q(), tk, sk]; continue; }
+        if (tk) S.tpl.add(tk); if (sk) S.sig.add(sk);
+        return q();
       }
+      if (fallback) { if (fallback[1]) S.tpl.add(fallback[1]); if (fallback[2]) S.sig.add(fallback[2]); return fallback[0]; }
       return null;
     },
     /* n questions spread evenly across generator types */

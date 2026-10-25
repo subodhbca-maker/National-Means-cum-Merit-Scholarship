@@ -19,6 +19,8 @@
   };
 
   const GENERATABLE = { mat: true, maths: true };
+  /* at most this many questions of one figure type in a paper, so no figure style feels repeated */
+  const FIG_CAPS = { figSeries: 3, paperFold: 2, mirrorImage: 2, dice: 1, countTriangles: 1, countSquares: 1, matrix: 1, cubeNet: 1, overlap: 1, missingFigure: 2, figAnalogy: 3, figOdd: 2 };
 
   /* UP MAT booklet order with question counts (out of 90), taken from the 2023–2025 papers */
   const MAT_BLUEPRINT = [
@@ -85,21 +87,32 @@
       }
       const need = n - items.length;
       const split = U.splitDifficulty(need, opts.ratio);
-      const gens = GEN.ofCat(cat);
+      const gens = U.shuffle(GEN.ofCat(cat));
       const mine = [];
-      for (const d of ['easy', 'moderate', 'hard']) {
+      // how many questions each generator already has in this category — keeps the mix even (max 2 of a kind for figures)
+      const genCount = {};
+      const tally = (q) => { if (q.gen) genCount[q.gen] = (genCount[q.gen] || 0) + 1; };
+      const capOf = (name) => (FIG_CAPS[name] != null ? FIG_CAPS[name] : 99);
+      const nextGen = () => {
+        const free = gens.filter((g) => (genCount[g.name] || 0) < capOf(g.name));
+        const pool2 = free.length ? free : gens;
+        const min = Math.min(...pool2.map((g) => genCount[g.name] || 0));
+        return U.pick(pool2.filter((g) => (genCount[g.name] || 0) === min));
+      };
+      for (const d of U.shuffle(['easy', 'moderate', 'hard'])) {
         let k = split[d];
         if (!k) continue;
-        const fromBank = gens.length ? Math.min(k - Math.round(k * share), k) : k;
-        const cand = (byCat[cat] || []).filter((q) => q.difficulty === d && !used.has(q.id));
+        const figCat = cat === 'figure' || cat === 'venn' || cat === 'figurenum';
+        const fromBank = gens.length ? Math.min(k - Math.round(k * (figCat ? Math.max(share, 0.75) : share)), k) : k;
+        const cand = (byCat[cat] || []).filter((q) => q.difficulty === d && !used.has(q.id) && !(q.source === 'generated' && q.figure && (q.used || 0) > 0) && (!q.gen || (genCount[q.gen] || 0) < capOf(q.gen)));
         const got = pickSpread(cand, Math.max(0, fromBank));
-        got.forEach((q) => used.add(q.id));
+        got.forEach((q) => { used.add(q.id); tally(q); GEN.markUsed(q); });
         mine.push(...got);
         k -= got.length;
         for (let i = 0; i < k; i++) {
-          const g = gens.length ? gens[(mine.length + i) % gens.length] : null;
+          const g = gens.length ? nextGen() : null;
           const q = g ? (GEN.one('mat', d, g) || GEN.one('mat', d, U.pick(gens))) : null;
-          if (q) mine.push(q);
+          if (q) { mine.push(q); tally(q); }
         }
       }
       while (mine.length < need) { // category without generator and empty bank: borrow any arithmetic generator
@@ -188,6 +201,9 @@
     const pat = PATTERNS[cfg.patternKey] || { kind: 'CUSTOM', sections: cfg.sections, startNo: 1, durationMin: cfg.durationMin || 90, name: { hi: cfg.title, en: cfg.title } };
     const bank = await DB.all('questions');
     const used = new Set();
+    // remember what recent papers drew so a new mock test does not look like the last one
+    const history = await DB.getSetting('figHistory', []);
+    GEN.beginSession(history);
     const warnings = [];
     let questions = [];
     for (const sec of pat.sections) {
@@ -195,6 +211,7 @@
       else questions.push(...buildSection(sec, bank, cfg, used, warnings));
     }
     // save fresh generated questions into the bank as well, and bump usage counters
+    await DB.setSetting('figHistory', history.concat(GEN.sessionSigs()).slice(-600));
     const fresh = questions.filter((q) => q.source === 'generated');
     if (cfg.saveGenerated !== false && fresh.length) await DB.putMany('questions', fresh.map((q) => { const c = Object.assign({}, q); delete c.section; c.used = 1; return c; }));
     const bumped = bank.filter((q) => used.has(q.id)).map((q) => Object.assign({}, q, { used: (q.used || 0) + 1 }));

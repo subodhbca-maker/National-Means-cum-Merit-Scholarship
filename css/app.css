@@ -16,7 +16,7 @@ img { max-width: 100%; }
 #app { display: flex; min-height: 100vh; }
 #sidebar { width: 248px; background: linear-gradient(180deg, #172163 0%, #1e2a78 60%, #24318a 100%); color: #fff; position: fixed; inset: 0 auto 0 0; display: flex; flex-direction: column; z-index: 40; transition: transform .25s; }
 .brand { display: flex; gap: 12px; align-items: center; padding: 18px 18px 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
-.brand img { width: 42px; height: 42px; border-radius: 10px; background: #fff; }
+.brand img { width: 46px; height: 46px; border-radius: 12px; background: #fff; object-fit: cover; }
 .brand b { display: block; font-size: 16px; letter-spacing: .2px; }
 .brand span { display: inline-block; font-size: 11px; font-weight: 700; background: var(--saff); color: #1b1300; padding: 1px 8px; border-radius: 20px; margin-top: 2px; letter-spacing: 1px; }
 #nav { padding: 10px 10px; overflow-y: auto; flex: 1; }
@@ -26,13 +26,17 @@ img { max-width: 100%; }
 #nav a small { font-size: 11px; font-weight: 500; opacity: .65; }
 #nav a:hover { background: rgba(255,255,255,.08); }
 #nav a.active { background: #fff; color: var(--navy); box-shadow: 0 4px 14px rgba(0,0,0,.18); }
-.side-foot { font-size: 11px; opacity: .6; padding: 12px 18px; border-top: 1px solid rgba(255,255,255,.1); }
+.side-foot { font-size: 11px; opacity: .75; padding: 12px 18px; border-top: 1px solid rgba(255,255,255,.1); line-height: 1.6; }
+.side-foot b { color: var(--saff-2); }
 
 #main { flex: 1; margin-left: 248px; min-width: 0; }
 #topbar { position: sticky; top: 0; z-index: 30; background: rgba(244,246,251,.92); backdrop-filter: blur(8px); display: flex; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--line); }
 #topbar h1 { font-size: 19px; margin: 0; flex: 1; font-weight: 700; }
 #menuBtn { display: none; }
-#view { padding: 22px 24px 60px; max-width: 1240px; }
+#view { padding: 22px 24px 30px; max-width: 1240px; }
+#credit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 24px 26px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--line); margin: 0 24px; max-width: 1192px; }
+#credit img { width: 22px; height: 22px; border-radius: 5px; }
+#credit b { color: var(--navy); }
 .loading { padding: 40px; text-align: center; color: var(--muted); }
 
 .icon-btn { border: 0; background: transparent; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 8px; }

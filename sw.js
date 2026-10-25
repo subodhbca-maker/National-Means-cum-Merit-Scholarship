@@ -1,8 +1,8 @@
 /* Basic Pathshala - NMMS : offline cache (app shell). Bump VERSION when files change. */
-const VERSION = 'bp-nmms-v2';
+const VERSION = 'bp-nmms-v3';
 const FILES = [
   './', 'index.html', 'manifest.json', 'css/app.css',
-  'icons/icon-192.png', 'icons/icon-512.png',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/logo.jpg', 'js/brand.js',
   'lib/pdf.min.js', 'lib/pdf.worker.min.js', 'lib/pptxgen.bundle.js', 'lib/xlsx.full.min.js', 'lib/jspdf.umd.min.js', 'lib/html2canvas.min.js',
   'js/util.js', 'js/db.js', 'js/generators.js', 'js/paper.js', 'js/exporters.js', 'js/omr.js', 'js/ai.js', 'js/ui.js',
   'js/pages-main.js', 'js/pages-paper.js', 'js/pages-import.js', 'js/pages-omr.js', 'js/pages-test.js', 'js/app.js',

@@ -77,6 +77,8 @@
     });
     const fy = 120 + ROWS * 3.48 + 1.5;
     s += t(10, fy + 4.5, 'Sign. of Candidate / अभ्यर्थी के हस्ताक्षर', 2.5) + t(78, fy + 4.5, 'Sign. of Invigilator / कक्ष निरीक्षक', 2.5) + t(146, fy + 4.5, 'Seal of Centre / केन्द्र की मुहर', 2.5);
+    s += `<image href="${BRAND.logo}" x="16" y="${fy + 7}" width="5" height="5"/>`;
+    s += `<text x="22.5" y="${fy + 10.6}" font-size="2.4" fill="#444">${U.esc(BRAND.footer)}</text>`;
     s += '</svg>';
     return s;
   }

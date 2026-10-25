@@ -6,9 +6,19 @@
   async function school() {
     return {
       name: await DB.getSetting('schoolName', 'Basic Pathshala'),
-      logo: await DB.getSetting('schoolLogo', ''),
+      logo: (await DB.getSetting('schoolLogo', '')) || BRAND.logo,
       tagline: await DB.getSetting('schoolTagline', '')
     };
+  }
+
+  /* bottom-of-page credit used on every document */
+  function footHtml(right) {
+    return `<div class="foot"><span><img src="${BRAND.logo}" alt="">${esc(BRAND.footer)}</span><span>${esc(right || '')}</span></div>`;
+  }
+
+  /* a table whose repeating <tfoot> keeps page content clear of the fixed footer on every printed page */
+  function pageWrap(body) {
+    return `<table class="pgwrap"><tbody><tr><td>${body}</td></tr></tbody><tfoot><tr><td><div class="footspace"></div></td></tr></tfoot></table>`;
   }
 
   /* ---------------- printable booklet ---------------- */
@@ -33,12 +43,14 @@
     .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px; margin-top: 3px; font-size: 10.5pt; }
     .opts.long { grid-template-columns: 1fr; }
     .qimg { max-width: 70%; max-height: 55mm; display: block; margin: 4px 0; }
-    .foot { position: fixed; bottom: -9mm; left: 0; right: 0; font-size: 8.5pt; color: #666; display: flex; justify-content: space-between; }
+    .foot { position: fixed; bottom: 0; left: 0; right: 0; height: 7mm; background: #fff; font-size: 8.5pt; color: #555; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ccc; }
+    table.pgwrap { width: 100%; border-collapse: collapse; } table.pgwrap > * > tr > td { padding: 0; } .footspace { height: 9mm; }
+    .foot img { height: 13px; vertical-align: -3px; margin-right: 4px; }
     table.key { border-collapse: collapse; width: 100%; font-size: 10pt; }
     table.key td, table.key th { border: 1px solid #888; padding: 3px 4px; text-align: center; }
     .pb { break-before: page; }
     .expl { font-size: 9.5pt; color: #333; margin: 2px 0 0 0; }
-    @media screen { body { max-width: 210mm; margin: 0 auto; padding: 16px; background: #fff; } .noprint { position: sticky; top: 0; background: #fffbe6; border: 1px solid #f0d36b; padding: 8px 12px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; font-family: sans-serif; } .noprint button { padding: 6px 14px; font-size: 14px; cursor: pointer; } }
+    @media screen { .foot { position: static; margin-top: 14px; } .footspace { display: none; } body { max-width: 210mm; margin: 0 auto; padding: 16px; background: #fff; } .noprint { position: sticky; top: 0; background: #fffbe6; border: 1px solid #f0d36b; padding: 8px 12px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; font-family: sans-serif; } .noprint button { padding: 6px 14px; font-size: 14px; cursor: pointer; } }
     @media print { .noprint { display: none; } }
   `;
 
@@ -104,7 +116,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
       <style>${PRINT_CSS}</style></head><body>
       <div class="noprint"><button onclick="window.print()">🖨️ Print / Save as PDF</button><span>${L('प्रिंट विंडो में "Save as PDF" चुनकर PDF बनाएँ।', 'Choose "Save as PDF" in the print dialog to get a PDF.')}</span></div>
-      ${body}<div class="foot"><span>${esc(s.name)} · Basic Pathshala - NMMS</span><span>${esc(paper.title)}</span></div></body></html>`;
+      ${pageWrap(body)}${footHtml(paper.title)}</body></html>`;
     openDoc(html);
   }
 
@@ -125,6 +137,7 @@
     pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 in
     pptx.title = paper.title;
     pptx.company = s.name;
+    pptx.author = 'Basic Pathshala — Subodh Maurya';
     const FONT = 'Nirmala UI';
     const NAVY = '1E2A78', SAFF = 'F28C28', GREEN = '1E9E58', LIGHT = 'F4F6FB';
 
@@ -133,17 +146,25 @@
       objects: [
         { rect: { x: 0, y: 0, w: 13.33, h: 0.75, fill: { color: NAVY } } },
         { rect: { x: 0, y: 7.2, w: 13.33, h: 0.3, fill: { color: LIGHT } } },
-        { text: { text: (s.name === 'Basic Pathshala' ? '' : s.name + '  ·  ') + 'Basic Pathshala - NMMS', options: { x: 0.3, y: 7.2, w: 8, h: 0.3, fontSize: 10, color: '666666', fontFace: FONT } } }
+        { image: { data: BRAND.logo, x: 0.15, y: 7.21, w: 0.28, h: 0.28 } },
+        { text: { text: (s.name === BRAND.name ? '' : s.name + '  ·  ') + BRAND.footer, options: { x: 0.48, y: 7.2, w: 10, h: 0.3, fontSize: 10, color: '555555', fontFace: FONT } } }
       ],
       slideNumber: { x: 12.4, y: 7.2, w: 0.7, h: 0.3, fontSize: 10, color: '666666' }
     });
 
-    const t = pptx.addSlide();
-    t.background = { color: NAVY };
-    if (s.logo) t.addImage({ data: s.logo, x: 5.92, y: 0.6, w: 1.5, h: 1.5, sizing: { type: 'contain', w: 1.5, h: 1.5 } });
-    t.addText(s.name, { x: 0.5, y: 2.3, w: 12.33, h: 0.8, fontSize: 30, bold: true, color: 'FFFFFF', align: 'center', fontFace: FONT });
-    t.addText(paper.title, { x: 0.5, y: 3.2, w: 12.33, h: 1, fontSize: 26, color: 'FFD9A8', align: 'center', fontFace: FONT });
-    t.addText(`${paper.questions.length} ${lang === 'en' ? 'Questions' : 'प्रश्न'}  ·  ${paper.durationMin} ${lang === 'en' ? 'minutes' : 'मिनट'}`, { x: 0.5, y: 4.3, w: 12.33, h: 0.6, fontSize: 18, color: 'FFFFFF', align: 'center', fontFace: FONT });
+    // title + closing slides are white so the logo (white background) sits cleanly
+    const brandSlide = (big, small) => {
+      const sl = pptx.addSlide();
+      sl.background = { color: 'FFFFFF' };
+      sl.addImage({ data: s.logo, x: 5.17, y: 0.35, w: 3, h: 3, sizing: { type: 'contain', w: 3, h: 3 } });
+      sl.addText(big, { x: 0.5, y: 3.55, w: 12.33, h: 0.9, fontSize: 30, bold: true, color: NAVY, align: 'center', fontFace: FONT, fit: 'shrink' });
+      if (small) sl.addText(small, { x: 0.5, y: 4.45, w: 12.33, h: 0.6, fontSize: 18, color: '444444', align: 'center', fontFace: FONT });
+      sl.addShape(pptx.ShapeType.rect, { x: 0, y: 6.85, w: 13.33, h: 0.65, fill: { color: NAVY } });
+      sl.addText(BRAND.footer, { x: 0.3, y: 6.85, w: 12.73, h: 0.65, fontSize: 13, color: 'FFFFFF', align: 'right', valign: 'middle', fontFace: FONT });
+      return sl;
+    };
+    const t = brandSlide(paper.title, `${s.name !== BRAND.name ? s.name + '  ·  ' : ''}${paper.questions.length} ${lang === 'en' ? 'Questions' : 'प्रश्न'}  ·  ${paper.durationMin} ${lang === 'en' ? 'minutes' : 'मिनट'}`);
+    void t;
 
     const secs = PAPER.sections(paper);
     const secOf = (i) => secs.find((x) => i >= x.from && i <= x.to);
@@ -178,9 +199,7 @@
         if (!reveal && q.answer >= 0) sl.addNotes(`Answer: ${q.answer + 1}${txt(q.explanation, 'hi') ? ' — ' + txt(q.explanation, 'hi') : ''}`);
       });
     });
-    const end = pptx.addSlide();
-    end.background = { color: NAVY };
-    end.addText(lang === 'en' ? 'All the best!' : 'शुभकामनाएँ!', { x: 0.5, y: 3, w: 12.33, h: 1.2, fontSize: 40, bold: true, color: 'FFFFFF', align: 'center', fontFace: FONT });
+    brandSlide(lang === 'en' ? 'All the best!' : 'शुभकामनाएँ! / All the best!', BRAND.tagline);
     await pptx.writeFile({ fileName: U.safeName(paper.title) + '.pptx' });
   }
 
@@ -208,7 +227,7 @@
       if (q.image && /^data:image\/(png|jpe?g);base64,/.test(q.image)) { it.img = q.image.split(',')[1]; it.mime = q.image.slice(5, q.image.indexOf(';')); }
       items.push(it);
     });
-    const meta = { title: paper.title, desc: `${paper.questions.length} प्रश्न · ${paper.durationMin} मिनट · प्रत्येक प्रश्न 1 अंक`, shuffle: !!opts.shuffle };
+    const meta = { title: paper.title, desc: `${paper.questions.length} प्रश्न · ${paper.durationMin} मिनट · प्रत्येक प्रश्न 1 अंक\n\n${BRAND.footer}`, shuffle: !!opts.shuffle };
     return `/**
  * Basic Pathshala - NMMS : Google Form (Quiz) generator
  * Paper: ${paper.title}
@@ -253,7 +272,8 @@ function createNmmsForm() {
   function exportExcel(name, sheets) {
     if (!window.XLSX) { U.toast('Excel library load नहीं हुई', 'err'); return; }
     const wb = XLSX.utils.book_new();
-    Object.keys(sheets).forEach((k) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheets[k]), k.slice(0, 30)));
+    wb.Props = { Title: name, Author: 'Subodh Maurya', Company: BRAND.name };
+    Object.keys(sheets).forEach((k) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheets[k].concat([[], [BRAND.footer]])), k.slice(0, 30)));
     XLSX.writeFile(wb, U.safeName(name) + '.xlsx');
   }
 
@@ -268,8 +288,8 @@ function createNmmsForm() {
     try {
       for (let i = 0; i < pages.length; i++) {
         const pg = document.createElement('div');
-        pg.style.cssText = 'width:794px;min-height:1123px;padding:40px 38px;background:#fff;box-sizing:border-box;';
-        pg.innerHTML = `<style>${PRINT_CSS.replace(/@page[^}]*}/, '').replace(/\.foot[^}]*}/, '')}${css || ''}</style>${pages[i]}<div style="margin-top:14px;font-size:9pt;color:#777;display:flex;justify-content:space-between"><span>Basic Pathshala - NMMS</span><span>${i + 1} / ${pages.length}</span></div>`;
+        pg.style.cssText = 'position:relative;width:794px;height:1123px;padding:40px 38px 60px;background:#fff;box-sizing:border-box;overflow:hidden;';
+        pg.innerHTML = `<style>${PRINT_CSS.replace(/@page[^}]*}/, '').replace(/\.foot[^}]*}/, '')}${css || ''}</style>${pages[i]}<div style="position:absolute;left:38px;right:38px;bottom:22px;font-size:9pt;color:#555;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ccc;padding-top:4px"><span><img src="${BRAND.logo}" style="height:15px;vertical-align:-3px;margin-right:5px">${esc(BRAND.footer)}</span><span>${i + 1} / ${pages.length}</span></div>`;
         host.appendChild(pg);
         const canvas = await html2canvas(pg, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
         if (i) pdf.addPage();
@@ -281,5 +301,5 @@ function createNmmsForm() {
     pdf.save(U.safeName(name) + '.pdf');
   }
 
-  window.EXPORT = { htmlToPdf, printPaper, makePPT, gformScript, exportExcel, openDoc, PRINT_CSS, school };
+  window.EXPORT = { footHtml, pageWrap, htmlToPdf, printPaper, makePPT, gformScript, exportExcel, openDoc, PRINT_CSS, school };
 })();

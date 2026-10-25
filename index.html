@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#1e2a78">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
+  <meta name="author" content="Subodh Maurya">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,7 +18,7 @@
   <div id="app">
     <aside id="sidebar">
       <div class="brand">
-        <img src="icons/icon-192.png" alt="">
+        <img src="icons/icon-192.png" alt="Basic Pathshala">
         <div><b>Basic Pathshala</b><span>NMMS</span></div>
       </div>
       <nav id="nav">
@@ -32,7 +33,7 @@
         <a href="#/results" data-r="results"><i>🏆</i><span>परिणाम<small>Results · Rank</small></span></a>
         <a href="#/settings" data-r="settings"><i>⚙️</i><span>सेटिंग्स<small>Settings</small></span></a>
       </nav>
-      <div class="side-foot">UP NMMS · MAT 90 + SAT 90</div>
+      <div class="side-foot">UP NMMS · MAT 90 + SAT 90<br><span>© Basic Pathshala</span><br><span>Concept &amp; Development: <b>Subodh Maurya</b></span></div>
     </aside>
     <div id="main">
       <header id="topbar">
@@ -41,6 +42,7 @@
         <div class="top-right" id="topRight"></div>
       </header>
       <main id="view"><div class="loading">लोड हो रहा है…</div></main>
+      <footer id="credit"><img src="icons/icon-192.png" alt=""><span>© Basic Pathshala</span><span class="dot">|</span><span>Concept &amp; Development: <b>Subodh Maurya</b></span></footer>
     </div>
   </div>
   <div id="toasts"></div>
@@ -50,6 +52,7 @@
   <script src="lib/xlsx.full.min.js"></script>
   <script src="lib/jspdf.umd.min.js"></script>
   <script src="lib/html2canvas.min.js"></script>
+  <script src="js/brand.js"></script>
   <script src="js/util.js"></script>
   <script src="js/db.js"></script>
   <script src="js/generators.js"></script>

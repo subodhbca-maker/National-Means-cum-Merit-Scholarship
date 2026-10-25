@@ -40,7 +40,7 @@
               <a href="#/omr"><i>🧾</i><b>OMR प्रिंट / स्कैन</b><span>मोबाइल कैमरा से जाँच</span></a>
               <a href="#/tests"><i>⏱️</i><b>मॉक टेस्ट</b><span>टाइमर के साथ ऑनलाइन</span></a>
               <a href="#/ai"><i>✨</i><b>AI से नए प्रश्न</b><span>Gemini · हिंदी + English</span></a>
-              <a href="#/results"><i>🏆</i><b>रैंक सूची</b><span>Excel export</span></a>
+              <a href="#/results"><i>🏆</i><b>रैंक सूची</b><span>Excel · PDF डाउनलोड</span></a>
               <a href="#/bank"><i>➕</i><b>प्रश्न जोड़ें</b><span>चित्र सहित</span></a>
             </div>
           </div>
@@ -295,8 +295,8 @@
         <div class="card"><h2>🏫 विद्यालय / संस्था <small>पेपर, PPT, OMR पर छपेगा</small></h2>
           <label class="f">नाम / Name<input type="text" id="sn" value="${esc(s.name)}"></label>
           <label class="f" style="margin-top:10px">उप-शीर्षक / Tagline<input type="text" id="st" value="${esc(s.tag)}" placeholder="जैसे: NMMS कोचिंग, जनपद …"></label>
-          <div class="btns" style="margin-top:12px"><img id="slogo" src="${s.logo || 'icons/icon-192.png'}" style="width:64px;height:64px;object-fit:contain;border:1px solid var(--line);border-radius:12px;background:#fff">
-            <label class="btn">🖼️ लोगो बदलें<input type="file" accept="image/*" id="sl" hidden></label><button class="btn danger sm" id="slr">हटाएँ</button></div>
+          <div class="btns" style="margin-top:12px"><img id="slogo" src="${s.logo || BRAND.logo}" style="width:64px;height:64px;object-fit:contain;border:1px solid var(--line);border-radius:12px;background:#fff">
+            <label class="btn">🖼️ लोगो बदलें<input type="file" accept="image/*" id="sl" hidden></label><button class="btn danger sm" id="slr">Basic Pathshala लोगो</button></div>
           <div class="btns" style="margin-top:14px"><button class="btn primary" id="ssave">💾 सेव करें</button></div></div>
         <div class="card"><h2>✨ Google Gemini AI <small>PDF आयात व AI प्रश्नों के लिए</small></h2>
           <ol class="steps"><li><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> खोलें (Google account से login)</li><li>"Create API key" दबाकर key copy करें</li><li>नीचे paste करके Save करें</li></ol>
@@ -305,6 +305,10 @@
           <div class="btns" style="margin-top:12px"><button class="btn primary" id="gsave">💾 सेव</button><button class="btn" id="gtest">🔌 जाँचें</button></div>
           <p class="muted" style="font-size:12.5px">Key सिर्फ़ इसी डिवाइस/ब्राउज़र में रहती है और बैकअप फ़ाइल में शामिल नहीं होती।</p></div>
       </div>
+      <div class="card"><div class="btns" style="gap:18px;align-items:center"><img src="icons/logo.jpg" alt="" style="width:110px;height:110px;border-radius:16px;border:1px solid var(--line)">
+        <div><h2 style="margin:0 0 4px">Basic Pathshala - NMMS</h2><div class="muted">${esc(BRAND.tagline)}</div>
+        <div style="margin-top:8px">परिकल्पना एवं विकास / Concept &amp; Development: <b>Subodh Maurya</b></div>
+        <div class="muted" style="font-size:12.5px;margin-top:4px">हर पेपर, PPT, OMR, Google Form, Excel और PDF रिपोर्ट के नीचे यह श्रेय अपने-आप छपता है।</div></div></div></div>
       <div class="card"><h2>💾 बैकअप व डेटा <small>Backup & restore</small></h2>
         <div class="btns"><button class="btn" id="bexp">⬇ पूरा बैकअप (.json)</button><label class="btn">⬆ बैकअप वापस लाएँ<input type="file" accept=".json,application/json" id="bimp" hidden></label>
         <button class="btn" id="reseed">🔄 UP PYQ फिर से जोड़ें</button><button class="btn danger" id="wipe">⚠ सारा डेटा मिटाएँ</button></div>
@@ -316,7 +320,7 @@
         <p class="muted" style="font-size:13px">प्रत्येक प्रश्न 1 अंक, ऋणात्मक अंकन नहीं। चयन के लिए दोनों भागों में सामान्यतः 40% (आरक्षित वर्ग 32%) अंक आवश्यक। पिछले वर्षों (2023–2025) के पेपरों में कई प्रश्न दोहराए गए हैं, इसलिए PYQ अभ्यास ज़रूरी है।</p></div>`;
       let logo = s.logo;
       v.querySelector('#sl').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; logo = await U.shrinkImage(await U.readFile(f), 300); v.querySelector('#slogo').src = logo; };
-      v.querySelector('#slr').onclick = () => { logo = ''; v.querySelector('#slogo').src = 'icons/icon-192.png'; };
+      v.querySelector('#slr').onclick = () => { logo = ''; v.querySelector('#slogo').src = BRAND.logo; };
       v.querySelector('#ssave').onclick = async () => {
         await DB.setSetting('schoolName', v.querySelector('#sn').value.trim() || 'Basic Pathshala');
         await DB.setSetting('schoolTagline', v.querySelector('#st').value.trim());

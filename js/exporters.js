@@ -257,5 +257,29 @@ function createNmmsForm() {
     XLSX.writeFile(wb, U.safeName(name) + '.xlsx');
   }
 
-  window.EXPORT = { printPaper, makePPT, gformScript, exportExcel, openDoc, PRINT_CSS, school };
+  /* render page-sized HTML blocks to an A4 PDF and download it (images, so Hindi always renders correctly) */
+  async function htmlToPdf(pages, css, name) {
+    if (!window.html2canvas || !window.jspdf) throw new Error('PDF library load नहीं हुई');
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;';
+    document.body.appendChild(host);
+    const pdf = new jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    try {
+      for (let i = 0; i < pages.length; i++) {
+        const pg = document.createElement('div');
+        pg.style.cssText = 'width:794px;min-height:1123px;padding:40px 38px;background:#fff;box-sizing:border-box;';
+        pg.innerHTML = `<style>${PRINT_CSS.replace(/@page[^}]*}/, '').replace(/\.foot[^}]*}/, '')}${css || ''}</style>${pages[i]}<div style="margin-top:14px;font-size:9pt;color:#777;display:flex;justify-content:space-between"><span>Basic Pathshala - NMMS</span><span>${i + 1} / ${pages.length}</span></div>`;
+        host.appendChild(pg);
+        const canvas = await html2canvas(pg, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+        if (i) pdf.addPage();
+        const h = Math.min(297, (canvas.height / canvas.width) * 210);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, h);
+        pg.remove();
+      }
+    } finally { host.remove(); }
+    pdf.save(U.safeName(name) + '.pdf');
+  }
+
+  window.EXPORT = { htmlToPdf, printPaper, makePPT, gformScript, exportExcel, openDoc, PRINT_CSS, school };
 })();

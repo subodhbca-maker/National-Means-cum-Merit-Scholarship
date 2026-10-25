@@ -108,7 +108,7 @@
               <a href="javascript:void 0" data-act="omr"><i>🧾</i><b>OMR शीट प्रिंट</b><span>UP NMMS जैसा 180 प्रश्न</span></a>
               <a href="#/omr/scan/${paper.id}"><i>📷</i><b>OMR स्कैन करें</b><span>मोबाइल फ़ोटो से अंक</span></a>
               <a href="#/test/${paper.id}"><i>⏱️</i><b>ऑनलाइन मॉक टेस्ट</b><span>टाइमर व तुरंत परिणाम</span></a>
-              <a href="#/results/${paper.id}"><i>🏆</i><b>परिणाम / रैंक</b><span>Excel export</span></a>
+              <div class="tile"><a href="#/results/${paper.id}" class="tile-link"><i>🏆</i><b>परिणाम / रैंक</b><span>रैंक सूची डाउनलोड करें</span></a><div class="btns" style="margin-top:6px"><button class="btn sm" data-act="resxl">⬇ Excel</button><button class="btn sm" data-act="respdf">⬇ PDF</button></div></div>
               <a href="javascript:void 0" data-act="share"><i>📦</i><b>पेपर फ़ाइल</b><span>दूसरे डिवाइस पर टेस्ट हेतु</span></a>
             </div>
             <div class="btns" style="margin-top:14px"><button class="btn sm" data-act="shuffle">🔀 प्रश्न क्रम बदलें</button><button class="btn sm" data-act="dup">📑 कॉपी बनाएँ</button><button class="btn sm danger" data-act="del">🗑 पेपर हटाएँ</button></div></div>
@@ -124,6 +124,8 @@
         const a = e.target.closest('[data-act]');
         if (a) {
           const act = a.dataset.act;
+          if (act === 'resxl') PAGES._exportResults(paper, 'xlsx');
+          if (act === 'respdf') PAGES._exportResults(paper, 'pdf', a);
           if (act === 'print') EXPORT.printPaper(paper, { lang });
           if (act === 'printkey') EXPORT.printPaper(paper, { lang, withKey: true, withExplanation: true });
           if (act === 'ppt') pptDialog(paper, lang);

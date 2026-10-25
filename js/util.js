@@ -102,7 +102,11 @@
     a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   };
-  U.safeName = (s) => String(s || 'file').replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, '_').slice(0, 80);
+  /* ASCII-only file names: some browsers/phones drop non-ASCII names and save as "download" */
+  U.safeName = (s) => {
+    const n = String(s || '').replace(/[^A-Za-z0-9_\-+]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 80);
+    return /[A-Za-z0-9]{2}/.test(n) ? (/^NMMS/i.test(n) ? n : 'NMMS_' + n) : 'NMMS_' + new Date().toISOString().slice(0, 10);
+  };
 
   U.readFile = (file, as) => new Promise((res, rej) => {
     const r = new FileReader();

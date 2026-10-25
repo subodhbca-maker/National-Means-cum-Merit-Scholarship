@@ -199,15 +199,12 @@
       const counts = {}; all.forEach((r) => { counts[r.paperId] = (counts[r.paperId] || 0) + 1; });
       const pid = paperId || (papers.find((p) => counts[p.id]) || papers[0]).id;
       const paper = papers.find((p) => p.id === pid) || papers[0];
-      const rs = all.filter((r) => r.paperId === paper.id);
-      rs.sort((a, b) => b.score - a.score || (a.name || '').localeCompare(b.name || ''));
-      let rank = 0, prev = null;
-      rs.forEach((r, i) => { if (r.score !== prev) { rank = i + 1; prev = r.score; } r.rank = rank; });
+      const rs = ranked(all.filter((r) => r.paperId === paper.id));
       const secs = PAPER.sections(paper);
       const avg = rs.length ? (rs.reduce((s, r) => s + r.score, 0) / rs.length).toFixed(1) : 0;
       const top = rs.length ? rs[0].score : 0;
       v.innerHTML = `<div class="card"><div class="row"><label class="f">पेपर चुनें<select id="rp">${papers.map((p) => `<option value="${p.id}" ${p.id === paper.id ? 'selected' : ''}>${esc(p.title)} (${counts[p.id] || 0})</option>`).join('')}</select></label>
-          <div class="btns" style="flex:0 0 auto"><button class="btn" id="rx">⬇ Excel</button><button class="btn" id="rprint">🖨 रैंक सूची प्रिंट</button><a class="btn primary" href="#/omr/scan/${paper.id}">🧾 OMR स्कैन</a></div></div></div>
+          <div class="btns" style="flex:0 0 auto"><button class="btn" id="rx">⬇ Excel</button><button class="btn" id="rpdf">⬇ PDF</button><a class="btn primary" href="#/omr/scan/${paper.id}">🧾 OMR स्कैन</a></div></div></div>
         <div class="grid g4" style="margin-bottom:18px">
           <div class="stat"><b>${rs.length}</b><span>विद्यार्थी</span></div>
           <div class="stat"><b>${avg}</b><span>औसत अंक / ${paper.questions.length}</span></div>
@@ -219,20 +216,8 @@
           ${rs.map((r) => `<tr><td><b>${r.rank}</b></td><td class="mono">${esc(r.roll || '')}</td><td>${esc(r.name || '')}</td>${secs.map((s) => `<td>${(r.bySection[s.key] || {}).correct || 0}/${(r.bySection[s.key] || {}).total || 0}</td>`).join('')}<td style="color:var(--green)">${r.correct}</td><td style="color:var(--red)">${r.wrong}</td><td>${r.blank}</td><td><b>${r.score}</b></td><td>${r.percent}%</td><td>${r.method === 'omr' ? '🧾 OMR' : '💻 Online'}</td><td><button class="btn sm" data-view="${r.id}">👁</button><button class="btn sm danger" data-del="${r.id}">🗑</button></td></tr>`).join('')}</table></div>` : '<div class="empty"><i>📭</i>इस पेपर का अभी कोई परिणाम नहीं।</div>'}
         </div>`;
       v.querySelector('#rp').onchange = (e) => APP.go('#/results/' + e.target.value);
-      v.querySelector('#rx').onclick = () => {
-        const head = ['Rank', 'Roll No', 'Name', ...secs.map((s) => s.label.en), 'Correct', 'Wrong', 'Blank', 'Score', 'Percent', 'Method', 'Date'];
-        const rows = rs.map((r) => [r.rank, r.roll, r.name, ...secs.map((s) => (r.bySection[s.key] || {}).correct || 0), r.correct, r.wrong, r.blank, r.score, r.percent, r.method, U.fmtDate(r.createdAt)]);
-        const key = [['Q No', 'Answer'], ...paper.questions.map((q, i) => [paper.startNo + i, q.answer + 1])];
-        EXPORT.exportExcel(paper.title + '_Result', { 'Merit List': [head, ...rows], 'Answer Key': key });
-      };
-      v.querySelector('#rprint').onclick = async () => {
-        const s = await EXPORT.school();
-        EXPORT.openDoc(`<!doctype html><html><head><meta charset="utf-8"><title>Merit List</title><style>${EXPORT.PRINT_CSS} table{border-collapse:collapse;width:100%;font-size:10.5pt}td,th{border:1px solid #888;padding:4px 6px}th{background:#eef}</style></head><body>
-          <div class="noprint"><button onclick="window.print()">🖨️ Print</button></div>
-          <div class="hdr">${s.logo ? `<img src="${s.logo}">` : ''}<div><h1>${esc(s.name)}</h1><div class="sub">मेरिट सूची / Merit List — ${esc(paper.title)}</div></div></div>
-          <table><tr><th>Rank</th><th>Roll No</th><th>Name</th>${secs.map((x) => `<th>${esc(x.label.hi)}</th>`).join('')}<th>Score</th><th>%</th></tr>
-          ${rs.map((r) => `<tr><td>${r.rank}</td><td>${esc(r.roll || '')}</td><td>${esc(r.name || '')}</td>${secs.map((x) => `<td>${(r.bySection[x.key] || {}).correct || 0}</td>`).join('')}<td><b>${r.score}</b>/${r.total}</td><td>${r.percent}%</td></tr>`).join('')}</table></body></html>`);
-      };
+      v.querySelector('#rx').onclick = () => resultsExcel(paper, rs);
+      v.querySelector('#rpdf').onclick = (e) => resultsPdf(paper, rs, e.currentTarget);
       v.querySelector('.card:last-child').addEventListener('click', async (e) => {
         const d = e.target.closest('[data-del]');
         if (d && await U.confirm('यह परिणाम हटाएँ?')) { await DB.del('results', d.dataset.del); APP.route(); return; }
@@ -244,6 +229,50 @@
         }
       });
     }
+  };
+
+  /* rank by score (ties share a rank) */
+  function ranked(rs) {
+    rs = rs.slice().sort((a, b) => b.score - a.score || (a.name || '').localeCompare(b.name || ''));
+    let rank = 0, prev = null;
+    rs.forEach((r, i) => { if (r.score !== prev) { rank = i + 1; prev = r.score; } r.rank = rank; });
+    return rs;
+  }
+
+  function resultsExcel(paper, rs) {
+    const secs = PAPER.sections(paper);
+    const head = ['Rank', 'Roll No', 'Name', ...secs.map((s) => s.label.en), 'Correct', 'Wrong', 'Blank', 'Score', 'Out of', 'Percent', 'Method', 'Date'];
+    const rows = rs.map((r) => [r.rank, r.roll, r.name, ...secs.map((s) => (r.bySection[s.key] || {}).correct || 0), r.correct, r.wrong, r.blank, r.score, r.total, r.percent, r.method === 'omr' ? 'OMR' : 'Online', U.fmtDate(r.createdAt)]);
+    const key = [['Q No', 'Answer'], ...paper.questions.map((q, i) => [paper.startNo + i, q.answer + 1])];
+    EXPORT.exportExcel(paper.title + '_Result', { 'Merit List': [head, ...rows], 'Answer Key': key });
+    U.toast('Excel डाउनलोड हुई ✔', 'ok');
+  }
+
+  async function resultsPdf(paper, rs, btn) {
+    const s = await EXPORT.school();
+    const secs = PAPER.sections(paper);
+    const avg = rs.length ? (rs.reduce((a, r) => a + r.score, 0) / rs.length).toFixed(1) : 0;
+    const head = `<div class="hdr">${s.logo ? `<img src="${s.logo}">` : ''}<div><h1>${esc(s.name)}</h1><div class="sub">मेरिट सूची / Merit List — ${esc(paper.title)}</div></div></div>`;
+    const summary = `<div class="meta"><span>विद्यार्थी / Students: ${rs.length}</span><span>औसत / Average: ${avg} / ${paper.questions.length}</span><span>सर्वोच्च / Top: ${rs.length ? rs[0].score : 0}</span><span>40%+ : ${rs.filter((r) => r.percent >= 40).length}</span></div>`;
+    const th = `<tr><th>रैंक<br>Rank</th><th>अनुक्रमांक<br>Roll No</th><th>नाम<br>Name</th>${secs.map((x) => `<th>${esc(x.label.hi)}<br>${esc(x.label.en)}</th>`).join('')}<th>सही</th><th>गलत</th><th>खाली</th><th>अंक<br>Score</th><th>%</th></tr>`;
+    const row = (r) => `<tr><td><b>${r.rank}</b></td><td>${esc(r.roll || '')}</td><td style="text-align:left;white-space:nowrap">${esc(r.name || '')}</td>${secs.map((x) => `<td>${(r.bySection[x.key] || {}).correct || 0}/${(r.bySection[x.key] || {}).total || 0}</td>`).join('')}<td>${r.correct}</td><td>${r.wrong}</td><td>${r.blank}</td><td><b>${r.score}</b>/${r.total}</td><td>${r.percent}%</td></tr>`;
+    const PER = 28, pages = [];
+    for (let i = 0; i < Math.max(1, rs.length); i += PER) {
+      pages.push(`${i ? '' : head + summary}<table class="ml">${th}${rs.slice(i, i + PER).map(row).join('') || '<tr><td colspan="20">कोई परिणाम नहीं</td></tr>'}</table>`);
+    }
+    const css = 'table.ml{border-collapse:collapse;width:100%;font-size:10pt;margin-top:8px}table.ml td,table.ml th{border:1px solid #888;padding:4px 5px;text-align:center}table.ml th{background:#e8ecfa;font-size:9pt}table.ml tr:nth-child(even) td{background:#f8f9fd}';
+    const old = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…'; }
+    try { await EXPORT.htmlToPdf(pages, css, paper.title + '_Merit_List'); U.toast('PDF डाउनलोड हुई ✔', 'ok'); } catch (e) { console.error(e); U.toast('PDF त्रुटि: ' + e.message, 'err'); }
+    if (btn) { btn.disabled = false; btn.innerHTML = old; }
+  }
+
+  /* used by the paper page tile */
+  PAGES._exportResults = async (paper, kind, btn) => {
+    const rs = ranked((await DB.all('results')).filter((r) => r.paperId === paper.id));
+    if (!rs.length) return U.toast('इस पेपर का अभी कोई परिणाम नहीं — पहले OMR स्कैन या मॉक टेस्ट करें', 'err');
+    if (kind === 'pdf') return resultsPdf(paper, rs, btn);
+    resultsExcel(paper, rs);
   };
 
   /* save a result for a paper (used by OMR + mock test) */

@@ -23,7 +23,7 @@ A browser app for UP NMMS: paper generator (40% easy / 40% moderate / 20% hard),
 | कोई भी PDF → PPT + Form | किसी भी परीक्षा का PDF या फ़ोटो डालें। Gemini प्रश्न निकालता है, अनुवाद करता है, उत्तर और कठिनाई तय करता है। फिर पेपर "जैसा है" बनाएँ या 40/40/20 में संतुलित करें। चित्र वाले प्रश्नों के लिए PDF पेज से चित्र काटकर जोड़ सकते हैं। |
 | OMR | UP प्रारूप की 180 प्रश्नों वाली शीट (7 अंकों का अनुक्रमांक)। मोबाइल फ़ोटो से अपने-आप जाँच होती है और शिक्षक हर उत्तर देखकर सुधार सकता है। |
 | मॉक टेस्ट | टाइमर, प्रश्न-palette, "बाद में देखें", तुरंत परिणाम और हर उत्तर की व्याख्या |
-| परिणाम | विषयवार अंक, रैंक, 40% क्वालिफ़ाइंग गिनती, Excel export, प्रिंट होने वाली मेरिट सूची |
+| परिणाम | विषयवार अंक, रैंक, 40% क्वालिफ़ाइंग गिनती। मेरिट सूची Excel और PDF में सीधे डाउनलोड (पेपर पेज के "परिणाम / रैंक" कार्ड से भी) |
 
 ## Gemini AI (वैकल्पिक / optional)
 
@@ -55,7 +55,7 @@ js/ai.js              Gemini (PDF/image extraction, question generation) + offli
 js/pages-*.js, app.js screens and router
 data/pyq-up-*.js      UP NMMS 2023/2024/2025 questions (answers worked out)
 data/sat-bank.js      practice questions for Science & Social Studies
-lib/                  pdf.js, PptxGenJS, SheetJS (bundled for offline use)
+lib/                  pdf.js, PptxGenJS, SheetJS, jsPDF, html2canvas (bundled for offline use)
 ```
 
 PYQ नोट: प्रश्न-पुस्तिकाओं में आधिकारिक उत्तर कुंजी नहीं थी, इसलिए हर उत्तर हल करके डाला गया है। चित्र-आधारित प्रश्न और जिनका कोई एक पक्का उत्तर नहीं बनता, वे छोड़ दिए गए हैं। इन्हें आप Import में PDF से काटकर जोड़ सकते हैं।

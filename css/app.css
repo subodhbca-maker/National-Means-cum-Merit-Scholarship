@@ -76,7 +76,11 @@ img { max-width: 100%; }
 .quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .quick a { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 12px; background: #fff; border: 1px solid var(--line); text-decoration: none; color: var(--ink); box-shadow: var(--shadow); }
 .quick a:hover { border-color: var(--navy-2); }
-.quick a i { font-style: normal; font-size: 22px; }
+.quick a i, .quick .tile i { font-style: normal; font-size: 22px; }
+.quick .tile { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 12px; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.quick .tile > a { display: flex; flex-direction: column; gap: 4px; padding: 0; border: 0; box-shadow: none; background: none; border-radius: 0; }
+.quick .tile span { font-size: 12.5px; color: var(--muted); }
+.quick .tile b { font-size: 14.5px; }
 .quick a b { font-size: 14.5px; }
 .quick a span { font-size: 12.5px; color: var(--muted); }
 

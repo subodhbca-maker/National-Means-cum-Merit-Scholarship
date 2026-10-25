@@ -54,7 +54,7 @@
       const q = paper.questions[cur];
       const sec = secs.find((s) => cur >= s.from && cur <= s.to);
       qbox.innerHTML = `<div class="btns" style="justify-content:space-between;margin-bottom:10px"><b style="color:var(--navy)">प्रश्न ${paper.startNo + cur} / ${paper.startNo + n - 1}</b><span class="badge">${esc(sec.label.hi)}</span></div>
-        <div class="qtext">${UI.biHtml(q.q, lang)}</div>${q.image ? `<img src="${q.image}" style="max-height:260px;margin-top:10px;border-radius:8px">` : ''}
+        <div class="qtext">${UI.biHtml(q.q, lang)}</div>${q.figure ? `<img class="tfig" src="${FIG.src(q.figure)}">` : ''}${q.image ? `<img src="${q.image}" style="max-height:260px;margin-top:10px;border-radius:8px">` : ''}
         ${q.options.map((o, k) => `<button class="test-opt ${ans[cur] === k ? 'on' : ''}" data-k="${k}"><span class="n">${k + 1}</span><span>${UI.biHtml(o, lang)}</span></button>`).join('')}
         <div class="btns" style="margin-top:14px"><button class="btn" id="prev" ${cur === 0 ? 'disabled' : ''}>‹ पिछला</button><button class="btn" id="mk">${marked[cur] ? '★ चिह्न हटाएँ' : '☆ बाद में देखें'}</button><button class="btn" id="clr">उत्तर हटाएँ</button><button class="btn primary" id="next" ${cur === n - 1 ? 'disabled' : ''}>अगला ›</button></div>`;
       drawPal();
@@ -111,7 +111,7 @@
       <div class="card"><h2>📖 उत्तरों की समीक्षा</h2>${paper.questions.map((q, i) => {
         const a = r.answers[i];
         return `<div class="qcard"><div class="qh"><span class="no">Q${paper.startNo + i}</span>${UI.badges(q)}<span class="sp"></span>${a < 0 ? '<span class="badge">छोड़ा</span>' : a === q.answer ? '<span class="badge b-easy">✔ सही</span>' : '<span class="badge b-hard">✘ गलत</span>'}</div>
-          <div class="qt">${UI.biHtml(q.q, lang)}</div>${q.image ? `<img class="qimg" src="${q.image}">` : ''}
+          <div class="qt">${UI.biHtml(q.q, lang)}</div>${q.figure ? `<img class="qfig" src="${FIG.src(q.figure)}">` : ''}${q.image ? `<img class="qimg" src="${q.image}">` : ''}
           <div class="opts">${q.options.map((o, k) => `<div class="${k === q.answer ? 'ok' : ''}" style="${k === a && a !== q.answer ? 'background:#fde8ec;color:#a52929' : ''}"><b>${k + 1})</b> ${UI.biHtml(o, lang)}</div>`).join('')}</div>
           ${U.txt(q.explanation, lang === 'en' ? 'en' : 'hi') ? `<div class="ex">💡 ${esc(U.txt(q.explanation, lang === 'en' ? 'en' : 'hi'))}</div>` : ''}</div>`;
       }).join('')}</div>`;

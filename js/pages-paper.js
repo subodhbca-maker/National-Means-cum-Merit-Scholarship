@@ -175,8 +175,9 @@
   }
 
   async function gformDialog(paper, lang) {
-    let code = EXPORT.gformScript(paper, { lang });
-    const big = paper.questions.some((q) => q.image);
+    const pngs = await EXPORT.figurePngs(paper, 1.25);
+    let code = EXPORT.gformScript(paper, { lang, pngs });
+    const big = paper.questions.some((q) => q.image || q.figure);
     await U.modal('Google Form (Quiz) बनाएँ', `<ol class="steps">
         <li><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener"><b>script.google.com</b></a> खोलें → <b>New project</b> (Google account से login)</li>
         <li>वहाँ पहले से लिखा code मिटाकर नीचे का पूरा code <b>Paste</b> करें (या .gs फ़ाइल डाउनलोड करके उसकी सामग्री)</li>
@@ -189,7 +190,7 @@
     [{ label: '⬇ .gs फ़ाइल', value: null, onClick: () => { U.download(U.safeName(paper.title) + '_GoogleForm.gs', code, 'text/plain'); return false; } },
       { label: '📋 Code Copy करें', cls: 'primary', value: null, onClick: () => { copy(code); return false; } }],
     { wide: true, onOpen: (w) => {
-      const regen = () => { code = EXPORT.gformScript(paper, { lang: UI.segVal(w, 'gl'), shuffle: w.querySelector('#gsh').checked }); w.querySelector('#gcode').textContent = code.slice(0, 4000) + (code.length > 4000 ? '\n…' : ''); };
+      const regen = () => { code = EXPORT.gformScript(paper, { lang: UI.segVal(w, 'gl'), shuffle: w.querySelector('#gsh').checked, pngs }); w.querySelector('#gcode').textContent = code.slice(0, 4000) + (code.length > 4000 ? '\n…' : ''); };
       UI.bindSeg(w, 'gl', regen); w.querySelector('#gsh').onchange = regen;
     } });
   }

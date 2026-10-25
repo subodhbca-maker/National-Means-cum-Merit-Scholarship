@@ -120,6 +120,8 @@ textarea { resize: vertical; min-height: 64px; }
 .qcard .opts div.ok { background: #e3f6ea; color: #136c3c; font-weight: 600; }
 .qcard .opts .en { color: var(--muted); font-size: 12.5px; }
 .qcard img.qimg { max-height: 180px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+.qcard img.qfig, img.tfig { display: block; max-width: 100%; max-height: 280px; margin-top: 8px; background: #fff; border-radius: 8px; border: 1px solid var(--line); padding: 4px; }
+img.tfig { max-height: 340px; margin: 12px 0 4px; }
 .qcard .ex { font-size: 13px; color: #1e5e3a; margin-top: 6px; }
 .qcard.sel { outline: 2px solid var(--navy-2); }
 

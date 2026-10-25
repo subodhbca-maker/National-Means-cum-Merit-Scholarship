@@ -347,7 +347,7 @@
         } catch (err) { U.toast('फ़ाइल सही नहीं: ' + err.message, 'err'); }
       };
       v.querySelector('#reseed').onclick = async () => {
-        const base = [].concat(PYQ_UP_2023, PYQ_UP_2024, PYQ_UP_2025, SAT_BANK).map(U.normQuestion);
+        const base = [].concat(PYQ_UP_2023, PYQ_UP_2024, PYQ_UP_2025, PYQ_FIGURES, SAT_BANK).map(U.normQuestion);
         await DB.putMany('questions', base); U.toast(`${base.length} प्रश्न फिर से जोड़े गए`, 'ok');
       };
       v.querySelector('#wipe').onclick = async () => {

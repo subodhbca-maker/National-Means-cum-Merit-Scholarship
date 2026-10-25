@@ -59,3 +59,19 @@ lib/                  pdf.js, PptxGenJS, SheetJS, jsPDF, html2canvas (bundled fo
 ```
 
 PYQ नोट: प्रश्न-पुस्तिकाओं में आधिकारिक उत्तर कुंजी नहीं थी, इसलिए हर उत्तर हल करके डाला गया है। चित्र-आधारित प्रश्न और जिनका कोई एक पक्का उत्तर नहीं बनता, वे छोड़ दिए गए हैं। इन्हें आप Import में PDF से काटकर जोड़ सकते हैं।
+
+## Windows ऐप (.exe)
+
+`desktop/` folder में Windows desktop version का source है (Electron)। Installer बनाने के लिए:
+
+```
+cd desktop
+npm install
+npm run build:win     # needs `makensis` (NSIS) and `zip`
+```
+
+Output `desktop/out/` में:
+- `BasicPathshala-NMMS-Setup-<version>.exe`: installer। Admin rights नहीं चाहिए; Desktop और Start Menu shortcut बनाता है।
+- `BasicPathshala-NMMS-Portable-<version>.zip`: बिना install किए चलाने के लिए।
+
+Desktop ऐप का डेटा `%APPDATA%\Basic Pathshala NMMS` में रहता है। Uninstall करने पर भी यह डेटा रहता है। एक कंप्यूटर से दूसरे पर ले जाने के लिए Settings → बैकअप इस्तेमाल करें।

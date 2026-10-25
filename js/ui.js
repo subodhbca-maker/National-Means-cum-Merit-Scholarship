@@ -29,7 +29,7 @@
     return `<div class="qcard" data-id="${esc(q.id)}">
       <div class="qh">${opts.selectable ? `<input type="checkbox" class="qsel" data-id="${esc(q.id)}">` : ''}${opts.no != null ? `<span class="no">Q${opts.no}</span>` : ''}${badges(q)}<span class="sp"></span>${opts.actions || ''}</div>
       <div class="qt">${biHtml(q.q, lang)}</div>
-      ${q.image ? `<img class="qimg" src="${q.image}" alt="">` : ''}
+      ${q.figure ? `<img class="qfig" src="${FIG.src(q.figure)}" alt="">` : ''}${q.image ? `<img class="qimg" src="${q.image}" alt="">` : ''}
       <div class="opts">${optsHtml}</div>${q.answer < 0 ? '<div class="ex" style="color:#a52929">⚠ सही उत्तर सेट नहीं है</div>' : ''}${ex}
     </div>`;
   }

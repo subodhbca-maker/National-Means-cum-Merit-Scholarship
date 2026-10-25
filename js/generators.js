@@ -548,11 +548,93 @@
     return finish('Surface Area & Volume', bi(`एक बेलन की त्रिज्या ${r} सेमी और ऊँचाई ${h} सेमी है। इसका आयतन है: (π = 22/7)`, `A cylinder has radius ${r} cm and height ${h} cm. Its volume is: (π = 22/7)`), V + ' cm³', [2 * (22 / 7) * r * h, V / 2, V + 154, (22 / 7) * r * h * h].map((x) => Math.round(x) + ' cm³'), bi(`πr²h = ${V}`, `πr²h = ${V}`));
   }
 
-  const MAT_GENS = [numberSeries, alphaSeries, coding, numberAnalogy, oddOneNumber, oddOneLetters, direction, ranking, clock, calendar, ages, letterPosition, countPattern, missingGrid, operators, bloodRelation];
-  const MATHS_GENS = [percentage, simpleInterest, hcfLcm, linearEq, mensuration, profitLoss, exponents, roots, average, angles, identities, proportion, compoundInterest, probability, quadratic, coordinates, solids];
+  /* letter gap series (UP Q70–77 type): fill the blanks of a repeating pattern */
+  function letterGap(diff) {
+    const L = diff === 'easy' ? 3 : diff === 'moderate' ? 4 : 5;
+    const letters = diff === 'easy' ? ['a', 'b'] : diff === 'moderate' ? shuffle(['a', 'b', 'c']).slice(0, rand(2, 3)) : ['a', 'b', 'c'];
+    let unit;
+    do { unit = Array.from({ length: L }, () => pick(letters)).join(''); } while (new Set(unit).size < Math.min(2, letters.length) || /^(.)\1+$/.test(unit) || isPeriodic(unit + unit + unit, L));
+    const full = unit.repeat(diff === 'easy' ? 3 : 3);
+    const nb = diff === 'easy' ? 4 : 5;
+    const idx = shuffle([...Array(full.length).keys()]).slice(0, nb).sort((a, b) => a - b);
+    const shown = full.split('').map((c, i) => (idx.includes(i) ? '_' : c)).join('');
+    const ans = idx.map((i) => full[i]).join('');
+    const fill = (opt) => { const a = full.split(''); idx.forEach((i, k) => { a[i] = opt[k]; }); return a.join(''); };
+    const wrong = [];
+    for (let t = 0; t < 60 && wrong.length < 6; t++) {
+      const w = ans.split('').map((c, k) => (Math.random() < 0.45 ? pick(letters.concat(letters.length < 3 ? ['c'] : [])) : c)).join('');
+      if (w !== ans && !wrong.includes(w) && !isPeriodic(fill(w), L)) wrong.push(w);
+    }
+    if (wrong.length < 3) return null;
+    return finish('Letter Gap Series', bi(`नीचे दी गई श्रेणी के रिक्त स्थानों में क्रम से कौन-से अक्षर आएँगे?\n${shown}`, `Which letters, in order, fill the blanks of the series?\n${shown}`), ans, wrong,
+      bi(`श्रेणी "${unit}" की पुनरावृत्ति है: ${full}`, `The series repeats "${unit}": ${full}`));
+  }
+  /* true if s repeats with some period p ≤ s.length / 2 (any such period makes a blank-fill valid) */
+  function isPeriodic(s, notP) {
+    for (let p = 1; p <= s.length / 2; p++) {
+      if (p === notP) continue;
+      let ok = true;
+      for (let i = p; i < s.length; i++) if (s[i] !== s[i - p]) { ok = false; break; }
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  const WORD_PAIRS = [
+    ['डॉक्टर', 'अस्पताल', 'Doctor', 'Hospital', 'शिक्षक', 'विद्यालय', 'Teacher', 'School', 'easy'],
+    ['पक्षी', 'घोंसला', 'Bird', 'Nest', 'मधुमक्खी', 'छत्ता', 'Bee', 'Hive', 'easy'],
+    ['आँख', 'देखना', 'Eye', 'See', 'कान', 'सुनना', 'Ear', 'Hear', 'easy'],
+    ['दूध', 'गाय', 'Milk', 'Cow', 'शहद', 'मधुमक्खी', 'Honey', 'Bee', 'easy'],
+    ['बढ़ई', 'आरी', 'Carpenter', 'Saw', 'दर्ज़ी', 'सुई', 'Tailor', 'Needle', 'easy'],
+    ['भारत', 'रुपया', 'India', 'Rupee', 'जापान', 'येन', 'Japan', 'Yen', 'easy'],
+    ['थर्मामीटर', 'ताप', 'Thermometer', 'Temperature', 'बैरोमीटर', 'वायुदाब', 'Barometer', 'Air pressure', 'moderate'],
+    ['लेखक', 'पुस्तक', 'Author', 'Book', 'मूर्तिकार', 'मूर्ति', 'Sculptor', 'Statue', 'moderate'],
+    ['जहाज़', 'बंदरगाह', 'Ship', 'Harbour', 'हवाई जहाज़', 'हवाई अड्डा', 'Aeroplane', 'Airport', 'moderate'],
+    ['घोड़ा', 'अस्तबल', 'Horse', 'Stable', 'गाय', 'गौशाला', 'Cow', 'Cowshed', 'moderate'],
+    ['बीज', 'पौधा', 'Seed', 'Plant', 'अंडा', 'पक्षी', 'Egg', 'Bird', 'moderate'],
+    ['विटामिन C', 'स्कर्वी', 'Vitamin C', 'Scurvy', 'विटामिन D', 'रिकेट्स', 'Vitamin D', 'Rickets', 'hard'],
+    ['भूकंप', 'सीस्मोग्राफ़', 'Earthquake', 'Seismograph', 'वायु वेग', 'एनीमोमीटर', 'Wind speed', 'Anemometer', 'hard'],
+    ['पत्रकारिता', 'समाचार पत्र', 'Journalism', 'Newspaper', 'ज्योतिष', 'जन्मपत्री', 'Astrology', 'Horoscope', 'hard'],
+    ['मीटर', 'लम्बाई', 'Metre', 'Length', 'किलोग्राम', 'द्रव्यमान', 'Kilogram', 'Mass', 'hard']
+  ];
+  function wordAnalogy(diff) {
+    const list = WORD_PAIRS.filter((w) => w[8] === diff);
+    const w = pick(list.length ? list : WORD_PAIRS);
+    const others = shuffle(WORD_PAIRS.filter((x) => x !== w)).slice(0, 3);
+    return finish('Word Analogy', bi(`${w[0]} : ${w[1]} :: ${w[4]} : ?`, `${w[2]} : ${w[3]} :: ${w[6]} : ?`), bi(w[5], w[7]), others.map((x) => (Math.random() < 0.5 ? bi(x[5], x[7]) : bi(x[1], x[3]))).concat([bi(w[1], w[3])]),
+      bi(`जो संबंध ${w[0]} और ${w[1]} में है, वही ${w[4]} और ${w[5]} में है।`, `${w[4]} relates to ${w[5]} as ${w[0]} relates to ${w[1]}.`));
+  }
+
+  const ODD_WORDS = [
+    [['आम', 'केला', 'सेब', 'आलू'], ['Mango', 'Banana', 'Apple', 'Potato'], 'easy', ['आलू सब्ज़ी है, बाकी फल हैं।', 'Potato is a vegetable; others are fruits.']],
+    [['लखनऊ', 'पटना', 'भोपाल', 'कानपुर'], ['Lucknow', 'Patna', 'Bhopal', 'Kanpur'], 'moderate', ['कानपुर राजधानी नहीं है।', 'Kanpur is not a state capital.']],
+    [['मंगल', 'बुध', 'शुक्र', 'चंद्रमा'], ['Mars', 'Mercury', 'Venus', 'Moon'], 'easy', ['चंद्रमा ग्रह नहीं, उपग्रह है।', 'The Moon is a satellite, not a planet.']],
+    [['लोहा', 'ताँबा', 'सोना', 'लकड़ी'], ['Iron', 'Copper', 'Gold', 'Wood'], 'easy', ['लकड़ी धातु नहीं है।', 'Wood is not a metal.']],
+    [['गंगा', 'यमुना', 'गोमती', 'हिमालय'], ['Ganga', 'Yamuna', 'Gomti', 'Himalaya'], 'easy', ['हिमालय पर्वत है।', 'Himalaya is a mountain.']],
+    [['त्रिभुज', 'वर्ग', 'आयत', 'घन'], ['Triangle', 'Square', 'Rectangle', 'Cube'], 'moderate', ['घन त्रिविमीय है, बाकी समतल आकृतियाँ हैं।', 'A cube is three-dimensional; the others are plane figures.']],
+    [['आँख', 'कान', 'नाक', 'हृदय'], ['Eye', 'Ear', 'Nose', 'Heart'], 'moderate', ['हृदय ज्ञानेन्द्रिय नहीं है।', 'The heart is not a sense organ.']],
+    [['ऑक्सीजन', 'नाइट्रोजन', 'हाइड्रोजन', 'पारा'], ['Oxygen', 'Nitrogen', 'Hydrogen', 'Mercury'], 'hard', ['पारा द्रव धातु है, बाकी गैसें हैं।', 'Mercury is a liquid metal; the others are gases.']],
+    [['कबड्डी', 'खो-खो', 'हॉकी', 'शतरंज'], ['Kabaddi', 'Kho-kho', 'Hockey', 'Chess'], 'moderate', ['शतरंज मैदान का खेल नहीं है।', 'Chess is not a field game.']],
+    [['व्हेल', 'डॉल्फ़िन', 'चमगादड़', 'शार्क'], ['Whale', 'Dolphin', 'Bat', 'Shark'], 'hard', ['शार्क मछली है, बाकी स्तनधारी हैं।', 'Shark is a fish; the others are mammals.']]
+  ];
+  function wordOdd(diff) {
+    const list = ODD_WORDS.filter((w) => w[2] === diff);
+    const [hi, en, , why] = pick(list.length ? list : ODD_WORDS);
+    const order = shuffle([0, 1, 2, 3]);
+    return { topic: 'Odd Word Out', q: bi('निम्नलिखित में से भिन्न शब्द चुनिए।', 'Choose the word which is different from the others.'), options: order.map((i) => bi(hi[i], en[i])), answer: order.indexOf(3), explanation: bi(why[0], why[1]) };
+  }
+
+  const MAT_GENS = [numberSeries, alphaSeries, coding, numberAnalogy, oddOneNumber, oddOneLetters, direction, ranking, clock, calendar, ages, letterPosition, countPattern, missingGrid, operators, bloodRelation, letterGap, wordAnalogy, wordOdd].concat(window.FIG ? FIG.MAT_FIG : []);
+  /* where each generator sits in the UP MAT order (figure generators carry `cat` themselves) */
+  const CAT = { numberSeries: 'series', alphaSeries: 'series', letterPosition: 'series', coding: 'coding', numberAnalogy: 'analogy', wordAnalogy: 'analogy', oddOneNumber: 'odd', oddOneLetters: 'odd', wordOdd: 'odd',
+    direction: 'relation', ranking: 'relation', bloodRelation: 'relation', clock: 'arith', calendar: 'arith', ages: 'arith', countPattern: 'arith', missingGrid: 'figurenum', operators: 'ops', letterGap: 'gap',
+    figSeries: 'figure', mirrorImage: 'figure', paperFold: 'figure', dice: 'figure', countTriangles: 'figure', figAnalogy: 'analogy', figOdd: 'odd', overlap: 'figurenum', missingFigure: 'figurenum', venn: 'venn' };
+  const MATHS_GENS = [percentage, simpleInterest, hcfLcm, linearEq, mensuration, profitLoss, exponents, roots, average, angles, identities, proportion, compoundInterest, probability, quadratic, coordinates, solids].concat(window.FIG ? FIG.MATHS_FIG : []);
 
   const G = {
-    MAT_GENS, MATHS_GENS,
+    MAT_GENS, MATHS_GENS, CAT,
+    byName(name) { return MAT_GENS.concat(MATHS_GENS).find((f) => f.name === name); },
+    ofCat(cat) { return MAT_GENS.filter((f) => (CAT[f.name] || 'arith') === cat); },
     topics(subject) { return (subject === 'mat' ? MAT_GENS : MATHS_GENS).map((f) => f.name); },
     /* generate one question for subject ('mat'|'maths') at difficulty */
     one(subject, diff, gen) {
@@ -562,7 +644,7 @@
         let r = null;
         try { r = f(diff); } catch (e) { r = null; }
         if (r && r.options.length === 4 && r.answer >= 0) {
-          return U.normQuestion(Object.assign(r, { subject, difficulty: diff, source: 'generated' }));
+          return U.normQuestion(Object.assign(r, { subject, difficulty: diff, source: 'generated', gen: f.name, cat: r.cat || CAT[f.name] || (subject === 'mat' ? 'arith' : 'maths') }));
         }
       }
       return null;

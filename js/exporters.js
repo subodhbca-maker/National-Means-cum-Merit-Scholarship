@@ -43,6 +43,7 @@
     .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px; margin-top: 3px; font-size: 10.5pt; }
     .opts.long { grid-template-columns: 1fr; }
     .qimg { max-width: 70%; max-height: 55mm; display: block; margin: 4px 0; }
+    .fig { display: block; margin: 6px auto 4px; max-width: 100%; max-height: 62mm; }
     .foot { position: fixed; bottom: 0; left: 0; right: 0; height: 7mm; background: #fff; font-size: 8.5pt; color: #555; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ccc; }
     table.pgwrap { width: 100%; border-collapse: collapse; } table.pgwrap > * > tr > td { padding: 0; } .footspace { height: 9mm; }
     .foot img { height: 13px; vertical-align: -3px; margin-right: 4px; }
@@ -64,8 +65,22 @@
     return `<div class="opts ${long ? 'long' : ''}">${q.options.map((o, i) => `<div>${OPT_NUM[i]}) ${esc(txt(o, l))}</div>`).join('')}</div>`;
   }
 
+  /* figure as an <img>; width follows the SVG so small figures are not blown up */
+  function figHtml(q) {
+    if (!q.figure) return '';
+    const s = FIG.size(q.figure);
+    return `<img class="fig" src="${FIG.src(q.figure)}" style="width:${Math.min(92, Math.round((s.w / 820) * 100))}%">`;
+  }
+
   function questionHtml(q, no, lang) {
     const img = q.image ? `<img class="qimg" src="${q.image}">` : '';
+    if (q.figure) {
+      const head = lang === 'bi'
+        ? `<div class="bi"><div><span class="qn">Q${no})</span> <span class="qt">${esc(txt(q.q, 'hi'))}</span></div><div><span class="qn">Q${no})</span> <span class="qt">${esc(txt(q.q, 'en'))}</span></div></div>`
+        : `<div><span class="qn">Q${no})</span> <span class="qt">${esc(txt(q.q, lang))}</span></div>`;
+      const opts = q.figOpts ? '' : lang === 'bi' ? `<div class="bi"><div>${optsHtmlLang(q, 'hi')}</div><div>${optsHtmlLang(q, 'en')}</div></div>` : optsHtml(q, lang);
+      return `<div class="q fq">${head}${figHtml(q)}${img}${opts}</div>`;
+    }
     if (lang === 'bi') {
       return `<div class="q bi"><div><span class="qn">Q${no})</span> <span class="qt">${esc(txt(q.q, 'hi'))}</span>${img}${optsHtmlLang(q, 'hi')}</div>
         <div><span class="qn">Q${no})</span> <span class="qt">${esc(txt(q.q, 'en'))}</span>${optsHtmlLang(q, 'en')}</div></div>`;
@@ -168,6 +183,7 @@
 
     const secs = PAPER.sections(paper);
     const secOf = (i) => secs.find((x) => i >= x.from && i <= x.to);
+    const pngs = await figurePngs(paper);
     paper.questions.forEach((q, i) => {
       const no = paper.startNo + i;
       const sec = secOf(i);
@@ -177,6 +193,7 @@
         sl.addText(`Q${no}${reveal ? (lang === 'en' ? '  ·  Answer' : '  ·  उत्तर') : ''}`, { x: 0.3, y: 0.1, w: 4, h: 0.55, fontSize: 22, bold: true, color: 'FFFFFF', fontFace: FONT });
         sl.addText(txt(sec.label, lang === 'en' ? 'en' : 'hi') + '  ·  ' + U.DIFF[q.difficulty][lang === 'en' ? 'en' : 'hi'], { x: 6.3, y: 0.1, w: 6.7, h: 0.55, fontSize: 14, color: 'FFD9A8', align: 'right', fontFace: FONT });
         const lines = txtLines(q.q, lang);
+        if (pngs[i]) { figureSlide(sl, q, pngs[i], lines, reveal); return; }
         const hasImg = !!q.image;
         const qw = hasImg ? 8.2 : 12.7;
         const runs = [];
@@ -199,8 +216,40 @@
         if (!reveal && q.answer >= 0) sl.addNotes(`Answer: ${q.answer + 1}${txt(q.explanation, 'hi') ? ' — ' + txt(q.explanation, 'hi') : ''}`);
       });
     });
+    function figureSlide(sl, q, png, lines, reveal) {
+      sl.addText(lines.map((ln, k) => ({ text: ln, options: { fontSize: k ? 15 : 19, color: k ? '444444' : '111111', bold: !k, breakLine: true } })), { x: 0.3, y: 0.82, w: 12.7, h: 1.0, valign: 'top', fontFace: FONT, fit: 'shrink' });
+      const sz = FIG.size(q.figure);
+      const boxH = q.figOpts ? 4.0 : 2.75, boxW = 12.5;
+      const k = Math.min(boxW / sz.w, boxH / sz.h);
+      const w = sz.w * k, h = sz.h * k;
+      sl.addImage({ data: png, x: (13.33 - w) / 2, y: 1.85, w, h });
+      const top = 1.85 + boxH + 0.12;
+      q.options.forEach((o, kk) => {
+        const right = reveal && kk === q.answer;
+        const small = q.figOpts;
+        const x = small ? 0.9 + kk * 3.0 : 0.3 + (kk % 2) * 6.45, y = small ? top : top + Math.floor(kk / 2) * 1.02, bw = small ? 2.6 : 6.25, bh = small ? 0.8 : 0.92;
+        sl.addShape(pptx.ShapeType.roundRect, { x, y, w: bw, h: bh, rectRadius: 0.1, fill: { color: right ? 'E3F6EA' : LIGHT }, line: { color: right ? GREEN : 'C9CFE3', width: right ? 3 : 1 } });
+        sl.addShape(pptx.ShapeType.ellipse, { x: x + 0.12, y: y + (bh - 0.5) / 2, w: 0.5, h: 0.5, fill: { color: right ? GREEN : SAFF } });
+        sl.addText(String(kk + 1), { x: x + 0.12, y: y + (bh - 0.5) / 2, w: 0.5, h: 0.5, fontSize: 15, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle' });
+        sl.addText(txt(o, lang === 'bi' ? 'hi' : lang) + (lang === 'bi' && !small && txt(o, 'en') !== txt(o, 'hi') ? '  /  ' + txt(o, 'en') : ''), { x: x + 0.7, y, w: bw - 0.8, h: bh, valign: 'middle', fontSize: 15, fontFace: FONT, fit: 'shrink' });
+      });
+      if (reveal) {
+        const e = txt(q.explanation, lang === 'en' ? 'en' : 'hi');
+        if (e) sl.addText((lang === 'en' ? 'Explanation: ' : 'व्याख्या: ') + e, { x: 0.3, y: 6.85, w: 12.7, h: 0.35, fontSize: 12, color: '1E5E3A', fontFace: FONT, fit: 'shrink' });
+      } else if (q.answer >= 0) sl.addNotes(`Answer: ${q.answer + 1}${txt(q.explanation, 'hi') ? ' — ' + txt(q.explanation, 'hi') : ''}`);
+    }
     brandSlide(lang === 'en' ? 'All the best!' : 'शुभकामनाएँ! / All the best!', BRAND.tagline);
     await pptx.writeFile({ fileName: U.safeName(paper.title) + '.pptx' });
+  }
+
+  /* PNG copies of every figure (index → data URL), for PowerPoint and Google Forms */
+  async function figurePngs(paper, scale) {
+    const out = [];
+    for (let i = 0; i < paper.questions.length; i++) {
+      const q = paper.questions[i];
+      if (q.figure) { try { out[i] = await FIG.toPng(q.figure, scale || 2); } catch (e) { console.error(e); } }
+    }
+    return out;
   }
 
   /* ---------------- Google Form via Apps Script ---------------- */
@@ -224,7 +273,8 @@
       const it = { t: 'Q' + (paper.startNo + i) + '. ' + lines[0], d: lines.slice(1).join('\n'), o, a: q.answer };
       const ex = txt(q.explanation, lang);
       if (ex) it.e = ex;
-      if (q.image && /^data:image\/(png|jpe?g);base64,/.test(q.image)) { it.img = q.image.split(',')[1]; it.mime = q.image.slice(5, q.image.indexOf(';')); }
+      const pic = (opts.pngs && opts.pngs[i]) || q.image;
+      if (pic && /^data:image\/(png|jpe?g);base64,/.test(pic)) { it.img = pic.split(',')[1]; it.mime = pic.slice(5, pic.indexOf(';')); }
       items.push(it);
     });
     const meta = { title: paper.title, desc: `${paper.questions.length} प्रश्न · ${paper.durationMin} मिनट · प्रत्येक प्रश्न 1 अंक\n\n${BRAND.footer}`, shuffle: !!opts.shuffle };
@@ -301,5 +351,5 @@ function createNmmsForm() {
     pdf.save(U.safeName(name) + '.pdf');
   }
 
-  window.EXPORT = { footHtml, pageWrap, htmlToPdf, printPaper, makePPT, gformScript, exportExcel, openDoc, PRINT_CSS, school };
+  window.EXPORT = { figurePngs, figHtml, footHtml, pageWrap, htmlToPdf, printPaper, makePPT, gformScript, exportExcel, openDoc, PRINT_CSS, school };
 })();

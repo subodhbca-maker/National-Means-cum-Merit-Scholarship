@@ -1,0 +1,15 @@
+{
+  "name": "Basic Pathshala - NMMS",
+  "short_name": "BP NMMS",
+  "description": "UP NMMS paper generator, question bank, PPT, Google Form, OMR print & scan, mock tests and results.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#1e2a78",
+  "lang": "hi",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

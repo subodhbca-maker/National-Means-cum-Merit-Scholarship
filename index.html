@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Basic Pathshala - NMMS</title>
+  <meta name="description" content="NMMS (UP) paper generator, question bank, PPT, Google Form, OMR print & scan, mock tests and results.">
+  <meta name="theme-color" content="#1e2a78">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <meta name="author" content="Subodh Maurya">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">
+        <img src="icons/icon-192.png" alt="Basic Pathshala">
+        <div><b>Basic Pathshala</b><span>NMMS</span></div>
+      </div>
+      <nav id="nav">
+        <a href="#/" data-r="home"><i>🏠</i><span>डैशबोर्ड<small>Dashboard</small></span></a>
+        <a href="#/generate" data-r="generate"><i>⚡</i><span>पेपर बनाएँ<small>Generate Paper</small></span></a>
+        <a href="#/papers" data-r="papers"><i>📄</i><span>मेरे पेपर<small>Papers · PPT · Form</small></span></a>
+        <a href="#/bank" data-r="bank"><i>📚</i><span>प्रश्न बैंक<small>Question Bank</small></span></a>
+        <a href="#/import" data-r="import"><i>📥</i><span>PDF से आयात<small>Import any PDF</small></span></a>
+        <a href="#/ai" data-r="ai"><i>✨</i><span>AI प्रश्न<small>Gemini Generator</small></span></a>
+        <a href="#/omr" data-r="omr"><i>🧾</i><span>OMR शीट<small>Print · Scan</small></span></a>
+        <a href="#/tests" data-r="tests"><i>⏱️</i><span>मॉक टेस्ट<small>Online Test</small></span></a>
+        <a href="#/results" data-r="results"><i>🏆</i><span>परिणाम<small>Results · Rank</small></span></a>
+        <a href="#/settings" data-r="settings"><i>⚙️</i><span>सेटिंग्स<small>Settings</small></span></a>
+      </nav>
+      <div class="side-foot">UP NMMS · MAT 90 + SAT 90<br><span>© Basic Pathshala</span><br><span>Concept &amp; Development: <b>Subodh Maurya</b></span></div>
+    </aside>
+    <div id="main">
+      <header id="topbar">
+        <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+        <h1 id="pageTitle">Basic Pathshala - NMMS</h1>
+        <div class="top-right" id="topRight"></div>
+      </header>
+      <main id="view"><div class="loading">लोड हो रहा है…</div></main>
+      <footer id="credit"><img src="icons/icon-192.png" alt=""><span>© Basic Pathshala</span><span class="dot">|</span><span>Concept &amp; Development: <b>Subodh Maurya</b></span></footer>
+    </div>
+  </div>
+  <div id="toasts"></div>
+
+  <script src="lib/pdf.min.js"></script>
+  <script src="lib/pptxgen.bundle.js"></script>
+  <script src="lib/xlsx.full.min.js"></script>
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="lib/html2canvas.min.js"></script>
+  <script src="js/brand.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/generators.js"></script>
+  <script src="data/sat-bank.js"></script>
+  <script src="data/pyq-up-2023.js"></script>
+  <script src="data/pyq-up-2024.js"></script>
+  <script src="data/pyq-up-2025.js"></script>
+  <script src="js/paper.js"></script>
+  <script src="js/exporters.js"></script>
+  <script src="js/omr.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/pages-main.js"></script>
+  <script src="js/pages-paper.js"></script>
+  <script src="js/pages-import.js"></script>
+  <script src="js/pages-omr.js"></script>
+  <script src="js/pages-test.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

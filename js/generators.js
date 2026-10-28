@@ -643,7 +643,13 @@
     beginSession(history) { G.session = { tpl: new Set(), sig: new Set(), history: new Set(history || []) }; },
     sessionSigs() { return [...G.session.sig]; },
     /* a question taken from the bank also counts as seen in this paper */
-    markUsed(q) { if (q.gen && q.tpl) G.session.tpl.add(q.gen + ':' + q.tpl); if (q.gen && q.sig) G.session.sig.add(q.gen + ':' + q.sig); },
+    markUsed(q) { if (q.gen && q.tpl) G.session.tpl.add(q.gen + ':' + q.tpl); if (q.gen) G.session.sig.add(q.gen + ':' + (q.sig || G.textSig(q))); },
+    /* short content hash for questions without a figure signature, so text questions are also not repeated across papers */
+    textSig(q) {
+      const t = U.txt(q.q, 'en') + '|' + (q.options || []).map((o) => U.txt(o, 'en')).join('|');
+      let h = 5381; for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+      return 't' + h.toString(36);
+    },
     one(subject, diff, gen) {
       const list = subject === 'mat' ? MAT_GENS : MATHS_GENS;
       const S = G.session;
@@ -653,7 +659,7 @@
         let r = null;
         try { r = f(diff); } catch (e) { r = null; }
         if (!(r && r.options.length === 4 && r.answer >= 0)) continue;
-        const tk = r.tpl ? f.name + ':' + r.tpl : null, sk = r.sig ? f.name + ':' + r.sig : null;
+        const tk = r.tpl ? f.name + ':' + r.tpl : null, sk = f.name + ':' + (r.sig || G.textSig(r));
         const clash = (tk && S.tpl.has(tk) && i < 22) || (sk && (S.sig.has(sk) || (S.history.has(sk) && i < 14)));
         const q = () => U.normQuestion(Object.assign(r, { subject, difficulty: diff, source: 'generated', gen: f.name, cat: r.cat || CAT[f.name] || (subject === 'mat' ? 'arith' : 'maths') }));
         if (clash) { if (!fallback && !(sk && S.sig.has(sk))) fallback = [q(), tk, sk]; continue; }

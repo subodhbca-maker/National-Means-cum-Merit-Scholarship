@@ -68,7 +68,8 @@
     cats = floor.map(([c, n]) => [c, n]).filter(([, n]) => n > 0);
     const target = U.splitDifficulty(count, opts.ratio);
     const share = opts.mixGenerated == null ? 0.5 : opts.mixGenerated;
-    const pool = bank.filter((q) => q.subject === 'mat' && q.answer >= 0 && !used.has(q.id) && (opts.includePyq !== false || q.source !== 'pyq'));
+    const pool = bank.filter((q) => q.subject === 'mat' && q.answer >= 0 && !used.has(q.id) && (opts.includePyq !== false || q.source !== 'pyq')
+      && (opts.pyqShare == null || q.source !== 'pyq' || catOf(q) === 'passage'));
     const byCat = {};
     pool.forEach((q) => { const c = catOf(q); (byCat[c] = byCat[c] || []).push(q); });
     const out = [];
@@ -76,14 +77,15 @@
       let items = [];
       // one previous-year passage set (5 linked questions) goes at the end, as in the real booklet
       if (cat === 'arith' && opts.includePyq !== false && n >= 5 && count >= 60) {
+        // an original UP passage not used before; once all have been used, a freshly generated reasoning passage
         const sets = {};
-        (byCat.passage || []).forEach((q) => { (sets[q.year] = sets[q.year] || []).push(q); });
-        const ys = Object.keys(sets).filter((y) => sets[y].length >= 5);
-        if (ys.length) {
-          const set = sets[U.pick(ys)].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).slice(0, 5);
-          set.forEach((q) => used.add(q.id));
-          items.push(...set.map((q) => Object.assign({}, q, { cat: 'passage' })));
-        }
+        (byCat.passage || []).filter((q) => q.source === 'pyq').forEach((q) => { (sets[q.year] = sets[q.year] || []).push(q); });
+        const ys = Object.keys(sets).filter((y) => sets[y].length >= 5 && !sets[y].some((q) => (q.used || 0) > 0 || (opts.exclude && opts.exclude.has(q.id))));
+        let set = ys.length ? sets[U.pick(ys)].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).slice(0, 5) : [];
+        if (!set.length && window.PASSAGE) set = PASSAGE.passageSet();
+        if (!set.length) set = Object.values(sets).filter((x) => x.length >= 5).map((x) => x.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).slice(0, 5)).sort((a, b) => (a[0].used || 0) - (b[0].used || 0))[0] || [];
+        set.forEach((q) => { if (q.source === 'pyq') used.add(q.id); });
+        items.push(...set.map((q) => Object.assign({}, q, { cat: 'passage' })));
       }
       const need = n - items.length;
       const split = U.splitDifficulty(need, opts.ratio);
@@ -104,7 +106,7 @@
         if (!k) continue;
         const figCat = cat === 'figure' || cat === 'venn' || cat === 'figurenum';
         const fromBank = gens.length ? Math.min(k - Math.round(k * (figCat ? Math.max(share, 0.75) : share)), k) : k;
-        const cand = (byCat[cat] || []).filter((q) => q.difficulty === d && !used.has(q.id) && !(q.source === 'generated' && q.figure && (q.used || 0) > 0) && (!q.gen || (genCount[q.gen] || 0) < capOf(q.gen)));
+        const cand = (byCat[cat] || []).filter((q) => q.difficulty === d && !used.has(q.id) && !(q.source === 'generated' && (q.used || 0) > 0) && (!q.gen || (genCount[q.gen] || 0) < capOf(q.gen)));
         const got = pickSpread(cand, Math.max(0, fromBank));
         got.forEach((q) => { used.add(q.id); tally(q); GEN.markUsed(q); });
         mine.push(...got);
@@ -144,20 +146,22 @@
     return list;
   }
 
-  /* pick n items from pool, spreading across topics and preferring least-used */
+  /* pick n items from pool: the least-used come first (so a question is not repeated while unused ones remain),
+     and within the same usage level the picks are spread across topics */
   function pickSpread(pool, n) {
-    const byTopic = {};
-    U.shuffle(pool).sort((a, b) => (a.used || 0) - (b.used || 0)).forEach((q) => {
-      const t = (q.topic || '').replace(/ · Q\d+$/, '') || 'misc';
-      (byTopic[t] = byTopic[t] || []).push(q);
-    });
-    const topics = U.shuffle(Object.keys(byTopic));
-    const out = [];
-    while (out.length < n && topics.some((t) => byTopic[t].length)) {
-      for (const t of topics) {
-        if (out.length >= n) break;
-        if (byTopic[t].length) out.push(byTopic[t].shift());
+    const levels = {};
+    pool.forEach((q) => { const u = q.used || 0; (levels[u] = levels[u] || []).push(q); });
+    const out = [], taken = {};
+    const topicOf = (q) => (q.topic || '').replace(/ · Q\d+$/, '') || 'misc';
+    for (const u of Object.keys(levels).map(Number).sort((a, b) => a - b)) {
+      const byTopic = {};
+      U.shuffle(levels[u]).forEach((q) => { const t = topicOf(q); (byTopic[t] = byTopic[t] || []).push(q); });
+      while (out.length < n && Object.values(byTopic).some((x) => x.length)) {
+        // topic least represented so far goes next
+        const t = U.shuffle(Object.keys(byTopic).filter((x) => byTopic[x].length)).sort((a, b) => (taken[a] || 0) - (taken[b] || 0))[0];
+        out.push(byTopic[t].shift()); taken[t] = (taken[t] || 0) + 1;
       }
+      if (out.length >= n) break;
     }
     return out;
   }
@@ -170,7 +174,7 @@
     for (const diff of ['easy', 'moderate', 'hard']) {
       let n = need[diff];
       if (!n) continue;
-      let pool = bank.filter((q) => q.subject === sec.subject && q.difficulty === diff && q.answer >= 0 && !used.has(q.id) && (opts.includePyq !== false || q.source !== 'pyq'));
+      let pool = bank.filter((q) => q.subject === sec.subject && q.difficulty === diff && q.answer >= 0 && !used.has(q.id) && !(q.source === 'generated' && (q.used || 0) > 0) && (opts.includePyq !== false || q.source !== 'pyq') && (opts.pyqShare == null || q.source !== 'pyq'));
       let fromBank = n;
       if (GENERATABLE[sec.subject]) {
         const genShare = Math.round(n * (opts.mixGenerated == null ? 0.5 : opts.mixGenerated));
@@ -186,7 +190,7 @@
       }
       if (short > 0) {
         // borrow from neighbouring difficulty so the paper is still complete
-        const alt = bank.filter((q) => q.subject === sec.subject && q.answer >= 0 && !used.has(q.id));
+        const alt = bank.filter((q) => q.subject === sec.subject && q.answer >= 0 && !used.has(q.id) && (opts.pyqShare == null || q.source !== 'pyq'));
         const extra = pickSpread(alt, short);
         extra.forEach((q) => used.add(q.id));
         chosen.push(...extra);
@@ -196,8 +200,30 @@
     return interleave(chosen).map((q) => Object.assign({}, q, { section: sec.subject }));
   }
 
+  /* swap questions of a section for previous-year ones until it holds `quota` PYQs.
+     A swap keeps subject, difficulty and (for MAT) category, so the paper's blueprint and 40/40/20 mix stay exact. */
+  function applyPyqShare(list, quota, bank, used, exclude) {
+    const have = list.filter((q) => q.source === 'pyq').length;
+    const pool = U.shuffle(bank.filter((q) => q.source === 'pyq' && q.answer >= 0 && !used.has(q.id) && !exclude.has(q.id) && catOf(q) !== 'passage'))
+      .sort((a, b) => (a.used || 0) - (b.used || 0));
+    const slots = U.shuffle(list.map((q, i) => i).filter((i) => list[i].source !== 'pyq' && list[i].cat !== 'passage'));
+    let added = 0;
+    for (const i of slots) {
+      if (have + added >= quota) break;
+      const old = list[i];
+      const k = pool.findIndex((p) => p.subject === old.subject && p.difficulty === old.difficulty && (old.section !== 'mat' || catOf(p) === old.cat));
+      if (k < 0) continue;
+      const p = pool.splice(k, 1)[0];
+      used.delete(old.id); used.add(p.id);
+      list[i] = Object.assign({}, p, { section: old.section, cat: old.cat });
+      added++;
+    }
+    return have + added;
+  }
+
   async function generate(cfg) {
-    // cfg: { patternKey | sections, title, lang, ratio, mixGenerated, includePyq, durationMin, startNo }
+    // cfg: { patternKey | sections, title, lang, ratio, mixGenerated, includePyq, durationMin, startNo,
+    //        pyqShare (0..1 exact share of previous-year questions), excludeIds (PYQs to avoid, e.g. used earlier in a batch) }
     const pat = PATTERNS[cfg.patternKey] || { kind: 'CUSTOM', sections: cfg.sections, startNo: 1, durationMin: cfg.durationMin || 90, name: { hi: cfg.title, en: cfg.title } };
     const bank = await DB.all('questions');
     const used = new Set();
@@ -206,12 +232,31 @@
     GEN.beginSession(history);
     const warnings = [];
     let questions = [];
-    for (const sec of pat.sections) {
-      if (sec.subject === 'mat') questions.push(...buildMat(sec.count, bank, cfg, used, warnings));
-      else questions.push(...buildSection(sec, bank, cfg, used, warnings));
+    const share = cfg.pyqShare != null && cfg.includePyq !== false ? Math.max(0, Math.min(1, +cfg.pyqShare)) : null;
+    const opts = Object.assign({}, cfg, { pyqShare: share, exclude: new Set(cfg.excludeIds || []) });
+    // PYQ quota per section by largest remainder, so the whole paper gets exactly round(total × share)
+    const quotas = share == null ? null : (() => {
+      const total = pat.sections.reduce((a, x) => a + x.count, 0);
+      const raw = pat.sections.map((x) => x.count * share), q = raw.map(Math.floor);
+      let left = Math.round(total * share) - q.reduce((a, b) => a + b, 0);
+      raw.map((r, i) => [r - q[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { q[i]++; left--; } });
+      return q;
+    })();
+    const lists = pat.sections.map((sec) => (sec.subject === 'mat' ? buildMat(sec.count, bank, opts, used, warnings) : buildSection(sec, bank, opts, used, warnings)));
+    if (quotas) {
+      // a section short of PYQs hands its shortfall to the others
+      let short = 0;
+      lists.forEach((list, si) => { short += quotas[si] - applyPyqShare(list, quotas[si], bank, used, opts.exclude); });
+      lists.forEach((list, si) => {
+        if (short <= 0) return;
+        const have = list.filter((q) => q.source === 'pyq').length;
+        short -= applyPyqShare(list, have + short, bank, used, opts.exclude) - have;
+      });
+      if (short > 0) warnings.push(`पिछले वर्ष के प्रश्न ${short} कम मिले।`);
     }
+    lists.forEach((list) => questions.push(...list));
     // save fresh generated questions into the bank as well, and bump usage counters
-    await DB.setSetting('figHistory', history.concat(GEN.sessionSigs()).slice(-600));
+    await DB.setSetting('figHistory', history.concat(GEN.sessionSigs()).slice(-4000));
     const fresh = questions.filter((q) => q.source === 'generated');
     if (cfg.saveGenerated !== false && fresh.length) await DB.putMany('questions', fresh.map((q) => { const c = Object.assign({}, q); delete c.section; c.used = 1; return c; }));
     const bumped = bank.filter((q) => used.has(q.id)).map((q) => Object.assign({}, q, { used: (q.used || 0) + 1 }));

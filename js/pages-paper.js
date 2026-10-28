@@ -24,6 +24,7 @@
           <div class="row"><label class="f">सरल %<input type="number" id="re" value="40"></label><label class="f">मध्यम %<input type="number" id="rm" value="40"></label><label class="f">कठिन %<input type="number" id="rh" value="20"></label></div>
           <label class="f" style="margin-top:14px">MAT व गणित में नए (generated) प्रश्नों का हिस्सा: <b id="mixv">50%</b><input type="range" id="mix" min="0" max="100" value="50" step="10"><small>बाकी प्रश्न बैंक (PYQ सहित) से आएँगे</small></label>
           <label class="check" style="margin-top:12px"><input type="checkbox" id="pyq" checked> UP पिछले वर्षों (PYQ) के प्रश्न शामिल करें</label>
+          <label class="f" style="margin-top:10px">पिछले वर्ष के मूल प्रश्न % <input type="number" id="pyqp" value="10" min="0" max="100" placeholder="खाली = अपने-आप"><small>हर पेपर में ठीक इतने प्रतिशत UP के मूल (PYQ) प्रश्न · कम इस्तेमाल हुए पहले</small></label>
           <div class="note blue" style="margin:14px 0 0;font-size:13px">बैंक में उपलब्ध (सरल/मध्यम/कठिन): ${['science', 'sst', 'maths', 'mat'].map((s) => `<b>${SUBJECTS[s].hi}</b> ${avail(s, 'easy')}/${avail(s, 'moderate')}/${avail(s, 'hard')}`).join(' · ')}</div>
         </div></div>
         <div class="btns" style="justify-content:center;margin:6px 0 20px"><button class="btn saff lg" id="go">⚡ पेपर बनाएँ / Generate</button></div>`;
@@ -35,6 +36,8 @@
         const ratio = { easy: +v.querySelector('#re').value || 0, moderate: +v.querySelector('#rm').value || 0, hard: +v.querySelector('#rh').value || 0 };
         if (ratio.easy + ratio.moderate + ratio.hard !== 100) return U.toast('तीनों प्रतिशत का योग 100 होना चाहिए', 'err');
         const cfg = { patternKey: pat === 'CUSTOM' ? null : pat, title: v.querySelector('#ttl').value.trim(), lang: UI.segVal(v, 'lang'), ratio, mixGenerated: +v.querySelector('#mix').value / 100, includePyq: v.querySelector('#pyq').checked };
+        const pp = v.querySelector('#pyqp').value.trim();
+        if (pp !== '') cfg.pyqShare = Math.max(0, Math.min(100, +pp || 0)) / 100;
         if (pat === 'CUSTOM') {
           cfg.sections = U.$$('[data-cnt]', v).map((i) => ({ subject: i.dataset.cnt, count: Math.max(0, +i.value || 0) })).filter((s) => s.count > 0);
           if (!cfg.sections.length) return U.toast('कम से कम एक विषय में प्रश्न संख्या दें', 'err');

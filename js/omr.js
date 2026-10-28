@@ -124,25 +124,22 @@
     return (x, y) => { const d = h[6] * x + h[7] * y + 1; return [(h[0] * x + h[1] * y + h[2]) / d, (h[3] * x + h[4] * y + h[5]) / d]; };
   }
 
-  function findMarkers(gray, w, h) {
-    // adaptive threshold via integral image
+  /* dark-blob candidates for the corner markers (adaptive threshold, so grey or faded print still counts) */
+  function blobs(gray, w, h) {
     const I = new Float64Array((w + 1) * (h + 1));
     for (let y = 0; y < h; y++) { let row = 0; for (let x = 0; x < w; x++) { row += gray[y * w + x]; I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + row; } }
-    const R = Math.max(8, Math.round(Math.min(w, h) / 16));
+    const R = Math.max(8, Math.round(Math.min(w, h) / 14));
     const dark = new Uint8Array(w * h);
     for (let y = 0; y < h; y++) {
       const y0 = Math.max(0, y - R), y1 = Math.min(h, y + R + 1);
       for (let x = 0; x < w; x++) {
         const x0 = Math.max(0, x - R), x1 = Math.min(w, x + R + 1);
-        const sum = I[y1 * (w + 1) + x1] - I[y0 * (w + 1) + x1] - I[y1 * (w + 1) + x0] + I[y0 * (w + 1) + x0];
-        const mean = sum / ((x1 - x0) * (y1 - y0));
-        dark[y * w + x] = gray[y * w + x] < mean * 0.72 && gray[y * w + x] < 140 ? 1 : 0;
+        const mean = (I[y1 * (w + 1) + x1] - I[y0 * (w + 1) + x1] - I[y1 * (w + 1) + x0] + I[y0 * (w + 1) + x0]) / ((x1 - x0) * (y1 - y0));
+        dark[y * w + x] = gray[y * w + x] < mean * 0.8 && gray[y * w + x] < 215 ? 1 : 0;
       }
     }
-    // connected components (iterative flood fill)
-    const lab = new Int32Array(w * h);
-    const comps = [];
-    const stack = new Int32Array(w * h);
+    const lab = new Int32Array(w * h), stack = new Int32Array(w * h), comps = [];
+    const minSide = Math.min(w, h) * 0.011, maxSide = Math.min(w, h) * 0.09;
     let id = 0;
     for (let i = 0; i < w * h; i++) {
       if (!dark[i] || lab[i]) continue;
@@ -158,101 +155,193 @@
         if (py > 0 && dark[p - w] && !lab[p - w]) { lab[p - w] = id; stack[sp++] = p - w; }
         if (py < h - 1 && dark[p + w] && !lab[p + w]) { lab[p + w] = id; stack[sp++] = p + w; }
       }
-      const bw = maxx - minx + 1, bh = maxy - miny + 1;
-      if (area < 40) continue;
+      const bw = maxx - minx + 1, bh = maxy - miny + 1, side = Math.sqrt(area);
+      if (side < minSide || side > maxSide) continue;
       const fill = area / (bw * bh), asp = bw / bh;
-      if (fill > 0.72 && asp > 0.6 && asp < 1.65 && bw < w * 0.12 && bh < h * 0.12) comps.push({ area, cx: sx / area, cy: sy / area, bw, bh });
+      if (fill > 0.6 && asp > 0.6 && asp < 1.65) comps.push({ area, cx: sx / area, cy: sy / area, fill });
     }
-    if (comps.length < 4) return null;
-    comps.sort((a, b) => b.area - a.area);
-    const big = comps.filter((c) => c.area >= comps[Math.min(3, comps.length - 1)].area * 0.45).slice(0, 12);
-    const corners = [[0, 0], [w, 0], [0, h], [w, h]];
-    const used = new Set();
-    const pts = corners.map(([X, Y]) => {
-      let best = null, bd = Infinity;
-      big.forEach((c, i) => { if (used.has(i)) return; const d = Math.hypot(c.cx - X, c.cy - Y); if (d < bd) { bd = d; best = i; } });
-      if (best == null) return null;
-      used.add(best);
-      return [big[best].cx, big[best].cy];
-    });
-    if (pts.some((p) => !p)) return null;
-    // sanity: the 4 points must form a reasonably large quadrilateral
-    const span = Math.hypot(pts[3][0] - pts[0][0], pts[3][1] - pts[0][1]);
-    if (span < Math.min(w, h) * 0.5) return null;
-    return pts;
+    return comps;
   }
 
-  /* read a sheet image. returns { ok, roll, answers[180] (-1 blank, -2 multiple, 0..3), canvas(overlay), confidence } */
+  /* pick the 4 blobs that form the sheet's marker rectangle (height : width ≈ 280 : 191).
+     Returns the corners in clockwise order starting anywhere; orientation is decided later. */
+  function findMarkers(gray, w, h) {
+    const comps = blobs(gray, w, h).sort((a, b) => b.area - a.area).slice(0, 16);
+    if (comps.length < 3) return null;
+    const RATIO = (MC[2][1] - MC[0][1]) / (MC[1][0] - MC[0][0]);
+    const d = (a, b) => Math.hypot(a.cx - b.cx, a.cy - b.cy);
+    const order = (ps) => { const cx = ps.reduce((s, p) => s + p.cx, 0) / ps.length, cy = ps.reduce((s, p) => s + p.cy, 0) / ps.length; return ps.slice().sort((a, b) => Math.atan2(a.cy - cy, a.cx - cx) - Math.atan2(b.cy - cy, b.cx - cx)); };
+    const score = (q) => {
+      const areas = q.map((p) => p.area), amin = Math.min(...areas), amax = Math.max(...areas);
+      if (amin / amax < 0.2) return -1;
+      const s = [d(q[0], q[1]), d(q[1], q[2]), d(q[2], q[3]), d(q[3], q[0])];
+      if (Math.abs(s[0] - s[2]) / Math.max(s[0], s[2]) > 0.3 || Math.abs(s[1] - s[3]) / Math.max(s[1], s[3]) > 0.3) return -1;
+      const a = (s[0] + s[2]) / 2, b = (s[1] + s[3]) / 2, r = Math.max(a, b) / Math.min(a, b);
+      if (r < 1.2 || r > 1.85 || Math.max(a, b) < Math.min(w, h) * 0.45) return -1;
+      // convex and roughly right-angled: diagonals cut each other near their middles
+      const mid1 = [(q[0].cx + q[2].cx) / 2, (q[0].cy + q[2].cy) / 2], mid2 = [(q[1].cx + q[3].cx) / 2, (q[1].cy + q[3].cy) / 2];
+      if (Math.hypot(mid1[0] - mid2[0], mid1[1] - mid2[1]) > 0.12 * Math.max(a, b)) return -1;
+      return (amin / amax) * (1 - Math.abs(r - RATIO) / RATIO) * Math.sqrt(amin) * (a * b);
+    };
+    let best = null, bestS = 0;
+    const n = comps.length;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) for (let k = j + 1; k < n; k++) for (let l = k + 1; l < n; l++) {
+      const q = order([comps[i], comps[j], comps[k], comps[l]]), sc = score(q);
+      if (sc > bestS) { bestS = sc; best = q; }
+    }
+    // only three markers visible (one faded / covered): complete the rectangle
+    if (!best) {
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) for (let k = j + 1; k < n; k++) {
+        const t = [comps[i], comps[j], comps[k]];
+        for (let c = 0; c < 3; c++) {
+          const B = t[c], A = t[(c + 1) % 3], C = t[(c + 2) % 3];
+          const D = { cx: A.cx + C.cx - B.cx, cy: A.cy + C.cy - B.cy, area: (A.area + C.area) / 2 };
+          if (D.cx < 0 || D.cy < 0 || D.cx > w || D.cy > h) continue;
+          const q = order([A, B, C, D]), sc = score(q) * 0.5;
+          if (sc > bestS) { bestS = sc; best = q; }
+        }
+      }
+    }
+    return best ? best.map((p) => [p.cx, p.cy]) : null;
+  }
+
+  /* read a sheet image. returns { ok, roll, answers[180] (-1 blank, -2 multiple, 0..3), canvas(overlay), threshold } */
   async function read(src) {
     const img = await loadImage(src);
-    const maxD = 1700;
+    const maxD = 2000;
     const s = Math.min(1, maxD / Math.max(img.width, img.height));
     const w = Math.round(img.width * s), h = Math.round(img.height * s);
     const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     const g = cv.getContext('2d', { willReadFrequently: true });
     g.drawImage(img, 0, 0, w, h);
     const px = g.getImageData(0, 0, w, h).data;
-    const gray = new Float32Array(w * h);
-    for (let i = 0, j = 0; i < px.length; i += 4, j++) gray[j] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-    let pts = findMarkers(gray, w, h);
-    if (!pts) return { ok: false, error: 'कोने के चार काले निशान नहीं मिले। पूरी शीट फ्रेम में रखें, रोशनी अच्छी हो, और फोटो सीधी लें। / Could not find the 4 corner markers.' };
-    const at = (x, y) => { const xi = Math.min(w - 1, Math.max(0, Math.round(x))), yi = Math.min(h - 1, Math.max(0, Math.round(y))); return gray[yi * w + xi]; };
-    // the orientation bar is dark only when the sheet is mapped the right way up; otherwise try it rotated 180°
-    const barInk = (Hm) => {
-      let sum = 0, n = 0;
-      for (let dx = 1; dx < ORIENT[2]; dx += 1) for (let dy = 0.75; dy < ORIENT[3]; dy += 0.75) { const [u, v] = Hm(ORIENT[0] + dx, ORIENT[1] + dy); sum += at(u, v); n++; }
-      return sum / n;
-    };
-    let H = homography(MC, pts);
-    const flipped = [pts[3], pts[2], pts[1], pts[0]];
-    const Hf = homography(MC, flipped);
-    if (barInk(Hf) < barInk(H)) { H = Hf; pts = flipped; }
+    // luminance finds the black markers; the red channel reads the bubbles, because the printed
+    // pink/red outlines and digits almost vanish in it while pen and pencil marks stay dark
+    const gray = new Float32Array(w * h), red = new Float32Array(w * h);
+    for (let i = 0, j = 0; i < px.length; i += 4, j++) { gray[j] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]; red[j] = Math.max(px[i], gray[j]); }
+    const quad = findMarkers(gray, w, h);
+    if (!quad) return { ok: false, error: 'कोने के काले निशान नहीं मिले। पूरी शीट (चारों कोने) फ्रेम में रखें, रोशनी अच्छी हो और फोटो ऊपर से सीधी लें। / Could not find the corner markers.' };
+    const sample = (arr, x, y) => { const xi = Math.min(w - 1, Math.max(0, Math.round(x))), yi = Math.min(h - 1, Math.max(0, Math.round(y))); return arr[yi * w + xi]; };
+    // try the four ways the corners can map to the sheet; the right one has the short side on top
+    // and the solid orientation bar next to the top-left marker
+    const sideLen = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    let H = null, pts = null, bestBar = Infinity;
+    for (let k = 0; k < 4; k++) {
+      const c = [0, 1, 2, 3].map((i) => quad[(k + i) % 4]); // TL, TR, BR, BL (clockwise)
+      if (sideLen(c[0], c[1]) > sideLen(c[1], c[2])) continue;
+      const cand = [c[0], c[1], c[3], c[2]];
+      const Hm = homography(MC, cand);
+      let ink = 0, n = 0, paper = 0, m = 0;
+      for (let dx = 1; dx < ORIENT[2]; dx += 1) for (let dy = 0.75; dy < ORIENT[3]; dy += 0.75) { const [u, v] = Hm(ORIENT[0] + dx, ORIENT[1] + dy); ink += sample(gray, u, v); n++; }
+      for (let dx = 1; dx < ORIENT[2]; dx += 1) { const [u, v] = Hm(ORIENT[0] + dx, ORIENT[1] + ORIENT[3] + 3); paper += sample(gray, u, v); m++; }
+      const ratio = (ink / n) / Math.max(1, paper / m);
+      if (ratio < bestBar) { bestBar = ratio; H = Hm; pts = cand; }
+    }
+    if (!H) return { ok: false, error: 'शीट की दिशा तय नहीं हो सकी। फोटो फिर से लें। / Could not work out the sheet orientation.' };
     const pxPerMm = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) / (MC[1][0] - MC[0][0]);
-    const sampleR = 0.85; // mm, inside the bubble outline
-    function bubbleMean(cx, cy) {
+
+    // mean of a disc (inside the bubble) and of a ring (the printed outline), in sheet mm
+    const disc = (arr, cx, cy, r) => {
       let sum = 0, n = 0;
-      for (let dy = -sampleR; dy <= sampleR + 1e-6; dy += sampleR / 3) for (let dx = -sampleR; dx <= sampleR + 1e-6; dx += sampleR / 3) {
-        if (dx * dx + dy * dy > sampleR * sampleR) continue;
-        const [u, v] = H(cx + dx, cy + dy); sum += at(u, v); n++;
+      for (let dy = -r; dy <= r + 1e-6; dy += r / 3) for (let dx = -r; dx <= r + 1e-6; dx += r / 3) {
+        if (dx * dx + dy * dy > r * r) continue;
+        const [u, v] = H(cx + dx, cy + dy); sum += sample(arr, u, v); n++;
       }
       return sum / n;
-    }
-    function paperMean(cx, cy) {
-      // white reference just outside the bubble (left & right gaps)
-      const ps = [[cx - 3.2, cy], [cx + 3.2, cy], [cx, cy - 1.75], [cx, cy + 1.75]];
-      const vals = ps.map(([x, y]) => { const [u, v] = H(x, y); return at(u, v); }).sort((a, b) => b - a);
-      return (vals[0] + vals[1]) / 2;
-    }
+    };
+    const ring = (cx, cy) => { let sum = 0; for (let i = 0; i < 16; i++) { const a = (i * Math.PI) / 8; const [u, v] = H(cx + BUB_R * Math.cos(a), cy + BUB_R * Math.sin(a)); sum += sample(gray, u, v); } return sum / 16; };
+    /* Phone photos and scanner apps are never perfectly flat, so the printed circles can sit a couple of mm
+       away from where the markers alone put them. For each block of rows, find a smooth path of (dx, dy)
+       offsets (dynamic programming, ±2.5 mm) that lands every row on its printed circles. */
+    const STEP = 0.25, RANGE = 10; // offsets -2.5 … +2.5 mm
+    const ringScore = (cx, cy) => {
+      let r = 0, gap = 0;
+      for (let i = 0; i < 12; i++) { const a = (i * Math.PI) / 6; const [u, v] = H(cx + BUB_R * Math.cos(a), cy + BUB_R * Math.sin(a)); r += sample(gray, u, v); }
+      for (const gx of [-3.2, 3.2]) { const [u, v] = H(cx + gx, cy); gap += sample(gray, u, v); }
+      return r / 12 - gap / 2; // more negative = ring darker than the white gap beside it
+    };
+    const fitBlock = (rows) => {
+      const N = 2 * RANGE + 1, S = N * N;
+      const cost = rows.map((bubbles) => {
+        const c = new Float32Array(S);
+        for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) {
+          const ox = (ix - RANGE) * STEP, oy = (iy - RANGE) * STEP;
+          c[iy * N + ix] = bubbles.reduce((t, [x, y]) => t + ringScore(x + ox, y + oy), 0) / bubbles.length;
+        }
+        return c;
+      });
+      // smoothness: neighbouring rows may differ by at most one step in each direction
+      const acc = [Float32Array.from(cost[0])], back = [null];
+      for (let r = 1; r < rows.length; r++) {
+        const a2 = new Float32Array(S), bk = new Int32Array(S);
+        for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) {
+          let best = Infinity, bi = 0;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            const jy = iy + dy, jx = ix + dx;
+            if (jy < 0 || jy >= N || jx < 0 || jx >= N) continue;
+            const v = acc[r - 1][jy * N + jx] + (dx || dy ? 0.5 : 0);
+            if (v < best) { best = v; bi = jy * N + jx; }
+          }
+          a2[iy * N + ix] = best + cost[r][iy * N + ix]; bk[iy * N + ix] = bi;
+        }
+        acc.push(a2); back.push(bk);
+      }
+      let cur = 0, bestV = Infinity;
+      acc[rows.length - 1].forEach((v, i) => { if (v < bestV) { bestV = v; cur = i; } });
+      const out = new Array(rows.length);
+      for (let r = rows.length - 1; r >= 0; r--) { out[r] = [((cur % N) - RANGE) * STEP, (Math.floor(cur / N) - RANGE) * STEP]; if (r) cur = back[r][cur]; }
+      return out;
+    };
     const L = LAYOUT;
-    const darkness = (x, y) => { const p = Math.max(60, paperMean(x, y)); return Math.max(0, 1 - bubbleMean(x, y) / p); };
-    const qd = L.q.map((q) => q.b.map(([x, y]) => darkness(x, y)));
-    const rd = L.roll.map((col) => col.map(([x, y]) => darkness(x, y)));
-    // empty-bubble baseline (printed outline/digit) from the lower half of all values
-    const all = qd.flat().sort((a, b) => a - b);
-    const base = all[Math.floor(all.length * 0.5)];
-    const TH = Math.max(0.28, base + 0.22);
-    const pickRow = (vals) => {
-      const sorted = vals.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
+    let qOff = [];
+    for (let c = 0; c < COLS; c++) qOff = qOff.concat(fitBlock(L.q.slice(c * ROWS, (c + 1) * ROWS).map((q) => q.b)));
+    const rollRows = [...Array(10).keys()].map((d) => L.roll.map((col) => col[d]));
+    const rOff = fitBlock(rollRows);
+
+    const paperRef = (cx, cy) => {
+      const ps = [[cx - 3.2, cy], [cx + 3.2, cy], [cx, cy - 1.75], [cx, cy + 1.75]];
+      const vals = ps.map(([x, y]) => { const [u, v] = H(x, y); return sample(red, u, v); }).sort((a, b) => b - a);
+      return (vals[0] + vals[1]) / 2;
+    };
+    const darkness = (x, y) => { const p = Math.max(60, paperRef(x, y)); return Math.max(0, Math.min(1, 1 - disc(red, x, y, 0.9) / p)); };
+    const qd = L.q.map((q, i) => q.b.map(([x, y]) => darkness(x + qOff[i][0], y + qOff[i][1])));
+    const rd = L.roll.map((col) => col.map(([x, y], d) => darkness(x + rOff[d][0], y + rOff[d][1])));
+
+    // threshold between "empty" and "filled" found from this sheet's own values (Otsu), within sane limits
+    const vals = qd.flat().concat(rd.flat());
+    let TH = 0.4, bestVar = -1;
+    for (let t = 0.15; t <= 0.75; t += 0.01) {
+      const lo = vals.filter((v) => v < t), hi = vals.filter((v) => v >= t);
+      if (!lo.length || !hi.length) continue;
+      const m0 = lo.reduce((a, b) => a + b, 0) / lo.length, m1 = hi.reduce((a, b) => a + b, 0) / hi.length;
+      const bv = (lo.length * hi.length) * (m1 - m0) * (m1 - m0);
+      if (bv > bestVar) { bestVar = bv; TH = t; }
+    }
+    TH = Math.min(0.6, Math.max(0.25, TH));
+    const pickRow = (row) => {
+      const sorted = row.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
       if (sorted[0][0] < TH) return -1;
-      if (sorted[1][0] >= TH && sorted[1][0] > sorted[0][0] - 0.18) return -2;
+      // two marks: only "multiple" when the second is nearly as dark as the first (an erased mark stays lighter)
+      if (sorted[1][0] >= TH && sorted[1][0] > sorted[0][0] * 0.75) return -2;
       return sorted[0][1];
     };
     const answers = qd.map(pickRow);
     const rollDigits = rd.map((col) => { const r = pickRow(col); return r >= 0 ? String(r) : r === -2 ? '*' : ''; });
-    // overlay
+
+    // overlay for the teacher to check
     g.lineWidth = Math.max(1.5, pxPerMm * 0.35);
     L.q.forEach((q, i) => q.b.forEach(([x, y], k) => {
       if (answers[i] === k || (answers[i] === -2 && qd[i][k] >= TH)) {
-        const [u, v] = H(x, y);
+        const [u, v] = H(x + qOff[i][0], y + qOff[i][1]);
         g.strokeStyle = answers[i] === -2 ? '#ff9800' : '#00c853';
         g.beginPath(); g.arc(u, v, pxPerMm * 1.9, 0, Math.PI * 2); g.stroke();
       }
     }));
     L.roll.forEach((col, c) => col.forEach(([x, y], d) => {
-      if (rollDigits[c] === String(d)) { const [u, v] = H(x, y); g.strokeStyle = '#2962ff'; g.beginPath(); g.arc(u, v, pxPerMm * 1.9, 0, Math.PI * 2); g.stroke(); }
+      if (rollDigits[c] === String(d)) { const [u, v] = H(x + rOff[d][0], y + rOff[d][1]); g.strokeStyle = '#2962ff'; g.beginPath(); g.arc(u, v, pxPerMm * 1.9, 0, Math.PI * 2); g.stroke(); }
     }));
     pts.forEach(([u, v]) => { g.strokeStyle = '#2962ff'; g.strokeRect(u - pxPerMm * 4, v - pxPerMm * 4, pxPerMm * 8, pxPerMm * 8); });
-    return { ok: true, roll: rollDigits.join(''), answers, canvas: cv, threshold: TH };
+    return { ok: true, roll: rollDigits.join(''), answers, canvas: cv, threshold: TH, darkness: qd };
   }
 
   /* answers for a paper from a 180-slot sheet */

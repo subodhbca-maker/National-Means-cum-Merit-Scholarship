@@ -36,8 +36,10 @@
       const onFiles = async (files) => {
         for (const f of files) await scanOne(f, paper, tb.querySelector('#scans'));
       };
-      tb.querySelector('#cam').onchange = (e) => onFiles(Array.from(e.target.files));
-      tb.querySelector('#gal').onchange = (e) => onFiles(Array.from(e.target.files));
+      // reset the input so the same photo can be chosen again
+      const pickFiles = (e) => { const fs = Array.from(e.target.files); e.target.value = ''; onFiles(fs); };
+      tb.querySelector('#cam').onchange = pickFiles;
+      tb.querySelector('#gal').onchange = pickFiles;
     }
   };
 
@@ -53,14 +55,25 @@
     const draw = () => {
       const sc = PAPER.score(paper, answers);
       const multi = answers.filter((a) => a === -2).length;
+      const blanks = answers.filter((a) => a === -1).length;
+      const warn = blanks > answers.length * 0.4 ? `<div class="note" style="margin:6px 0">⚠ ${blanks} प्रश्न खाली पढ़े गए। अगर बच्चे ने इतने छोड़े नहीं हैं, तो फ़ोटो दोबारा लें (पूरी शीट, सीधी, अच्छी रोशनी)।</div>` : '';
       card.innerHTML = `<div class="grid g2"><div><img src="${res.canvas.toDataURL('image/jpeg', 0.8)}" alt="scan"></div>
         <div><h2 style="margin-bottom:6px">${sc.score} / ${sc.total} <small>${sc.percent}% · सही ${sc.correct} · गलत ${sc.wrong} · खाली ${sc.blank}${multi ? ` · ✱ एक से अधिक ${multi}` : ''}</small></h2>
-          <div class="row"><label class="f">अनुक्रमांक<input type="text" class="sroll" value="${esc(res.roll.replace(/[^0-9]/g, '') === res.roll ? res.roll : res.roll)}"></label><label class="f">विद्यार्थी का नाम<input type="text" class="sname" placeholder="नाम लिखें"></label></div>
+          ${warn}<div class="row"><label class="f">अनुक्रमांक<input type="text" class="sroll" value="${esc(res.roll.replace(/[^0-9]/g, '') === res.roll ? res.roll : res.roll)}"></label><label class="f">विद्यार्थी का नाम<input type="text" class="sname" placeholder="नाम लिखें"></label></div>
           <div class="muted" style="font-size:12.5px;margin:8px 0 4px">पढ़े गए उत्तर (हरा = सही, लाल = गलत, ✱ = कई गोले) — गलत पढ़ा हो तो बदलें:</div>
           <div class="ans-grid">${paper.questions.map((q, i) => { const a = answers[i]; const cls = a < 0 ? 'blank' : a === q.answer ? 'ok' : 'bad'; return `<div class="${cls}"><b>${paper.startNo + i}</b><select data-i="${i}"><option value="-1" ${a === -1 ? 'selected' : ''}>–</option><option value="-2" ${a === -2 ? 'selected' : ''}>✱</option>${[0, 1, 2, 3].map((k) => `<option value="${k}" ${a === k ? 'selected' : ''}>${k + 1}</option>`).join('')}</select></div>`; }).join('')}</div>
           <div class="btns" style="margin-top:12px"><button class="btn green sv">💾 परिणाम सेव करें</button><button class="btn danger sm rm">✕</button></div></div></div>`;
       card.querySelector('.sv').onclick = async () => {
-        const r = await PAGES._saveResult(paper, { roll: card.querySelector('.sroll').value.trim(), name: card.querySelector('.sname').value.trim() }, answers, 'omr');
+        const roll = card.querySelector('.sroll').value.trim();
+        // the same sheet scanned twice (e.g. by two teachers) should replace, not add a second result
+        const dup = roll ? (await DB.all('results')).find((x) => x.paperId === paper.id && x.roll === roll) : null;
+        if (dup) {
+          const ch = await U.modal('यह अनुक्रमांक पहले से है', `<p>अनुक्रमांक <b>${esc(roll)}</b> (${esc(dup.name || '')}) का परिणाम इस पेपर में पहले से सेव है: <b>${dup.score}/${dup.total}</b>। नया स्कैन: <b>${PAPER.score(paper, answers).score}</b>।</p>`,
+            [{ label: 'रद्द', value: null }, { label: 'दोनों रखें', value: 'keep' }, { label: 'पुराना बदलें', value: 'replace', cls: 'primary' }]);
+          if (!ch) return;
+          if (ch === 'replace') await DB.del('results', dup.id);
+        }
+        const r = await PAGES._saveResult(paper, { roll, name: card.querySelector('.sname').value.trim() }, answers, 'omr');
         card.innerHTML = `<div class="note green" style="margin:0">✅ सेव हुआ: ${esc(r.name || '(बिना नाम)')} · अनुक्रमांक ${esc(r.roll || '-')} · <b>${r.score}/${r.total}</b> · <a href="#/results/${paper.id}">रैंक सूची देखें</a></div>`;
       };
       card.querySelector('.rm').onclick = () => card.remove();

@@ -1,5 +1,5 @@
 /* Basic Pathshala - NMMS : offline cache (app shell). Bump VERSION when files change. */
-const VERSION = 'bp-nmms-v5';
+const VERSION = 'bp-nmms-v6';
 const FILES = [
   './', 'index.html', 'manifest.json', 'css/app.css',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/logo.jpg', 'js/brand.js',

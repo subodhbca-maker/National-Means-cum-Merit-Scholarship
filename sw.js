@@ -1,12 +1,13 @@
 /* Basic Pathshala - NMMS : offline cache (app shell). Bump VERSION when files change. */
-const VERSION = 'bp-nmms-v6';
+const VERSION = 'bp-nmms-v7';
 const FILES = [
   './', 'index.html', 'manifest.json', 'css/app.css',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/logo.jpg', 'js/brand.js',
   'lib/pdf.min.js', 'lib/pdf.worker.min.js', 'lib/pptxgen.bundle.js', 'lib/xlsx.full.min.js', 'lib/jspdf.umd.min.js', 'lib/html2canvas.min.js',
-  'js/util.js', 'js/db.js', 'js/figures.js', 'js/generators.js', 'js/paper.js', 'js/exporters.js', 'js/omr.js', 'js/ai.js', 'js/ui.js',
+  'js/util.js', 'js/db.js', 'js/figures.js', 'js/generators.js', 'js/passage.js', 'js/paper.js', 'js/exporters.js', 'js/omr.js', 'js/ai.js', 'js/ui.js',
   'js/pages-main.js', 'js/pages-paper.js', 'js/pages-import.js', 'js/pages-omr.js', 'js/pages-test.js', 'js/app.js',
-  'data/sat-bank.js', 'data/pyq-up-2023.js', 'data/pyq-up-2024.js', 'data/pyq-up-2025.js', 'data/pyq-figures.js'
+  'data/sat-bank.js', 'data/sat-bank-2.js', 'data/sat-bank-2a.js', 'data/sat-bank-2b.js', 'data/sat-bank-2c.js', 'data/sat-bank-2d.js', 'data/sat-bank-2e.js', 'data/sat-bank-2f.js',
+  'data/pyq-up-2023.js', 'data/pyq-up-2024.js', 'data/pyq-up-2025.js', 'data/pyq-figures.js'
 ];
 
 self.addEventListener('install', (e) => {

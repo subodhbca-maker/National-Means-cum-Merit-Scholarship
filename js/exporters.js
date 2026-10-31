@@ -39,6 +39,7 @@
     .bi { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
     .bi > div + div { border-left: 1px solid #bbb; padding-left: 12px; }
     .qt { white-space: pre-wrap; }
+    .psg { border: 1px solid #999; background: #f6f7fb; padding: 6px 10px; margin: 8px 0 4px; font-size: 10pt; white-space: pre-wrap; break-inside: avoid; }
     .qn { font-weight: 700; }
     .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px; margin-top: 3px; font-size: 10.5pt; }
     .opts.long { grid-template-columns: 1fr; }
@@ -105,9 +106,25 @@
           <li>${L('प्रत्येक प्रश्न के चार विकल्पों में से सही विकल्प की संख्या उत्तर पत्रक (OMR) में संगत प्रश्न संख्या के सामने भरें।', 'Choose the correct alternative out of four and darken its number against the question number on the OMR answer sheet.')}</li>
           <li>${L('ऋणात्मक अंकन नहीं है।', 'There is no negative marking.')}</li>
           <li>${L('इस पुस्तिका में रफ़ कार्य के अतिरिक्त कुछ न लिखें।', 'Do not write anything in this booklet except rough work.')}</li></ol></div>`;
+      // linked questions (a passage followed by its question) print the passage once, as in the real booklet
+      const headOf = (q, l) => { const t = txt(q.q, l), k = t.lastIndexOf('\n'); return k > 0 ? [t.slice(0, k), t.slice(k + 1)] : ['', t]; };
       secs.forEach((sec) => {
         body += `<div class="sec">${esc(L(sec.label.hi, sec.label.en))} (Q${paper.startNo + sec.from} – Q${paper.startNo + sec.to})</div>`;
-        for (let i = sec.from; i <= sec.to; i++) body += questionHtml(paper.questions[i], paper.startNo + i, lang);
+        for (let i = sec.from; i <= sec.to; i++) {
+          const q = paper.questions[i], h = headOf(q, 'en')[0];
+          let j = i;
+          while (h && j < sec.to && headOf(paper.questions[j + 1], 'en')[0] === h) j++;
+          if (j === i) { body += questionHtml(q, paper.startNo + i, lang); continue; }
+          const dir = L(`निर्देश (प्रश्न ${paper.startNo + i} – ${paper.startNo + j}):`, `Directions (Q${paper.startNo + i} – Q${paper.startNo + j}):`);
+          const ph = (l) => esc(headOf(q, l)[0]);
+          body += lang === 'bi' ? `<div class="psg bi"><div><b>${esc(dir.split(' / ')[0])}</b> ${ph('hi')}</div><div><b>${esc(dir.split(' / ')[1])}</b> ${ph('en')}</div></div>`
+            : `<div class="psg"><b>${esc(dir)}</b> ${ph(lang)}</div>`;
+          for (let k = i; k <= j; k++) {
+            const qk = paper.questions[k];
+            body += questionHtml(Object.assign({}, qk, { q: { hi: headOf(qk, 'hi')[1], en: headOf(qk, 'en')[1] } }), paper.startNo + k, lang);
+          }
+          i = j;
+        }
       });
     }
     if (opts.withKey || opts.keyOnly) {

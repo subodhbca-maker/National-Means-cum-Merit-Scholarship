@@ -4,6 +4,8 @@
 
 A browser app for UP NMMS: paper generator (40% easy / 40% moderate / 20% hard), question bank with UP previous-year questions, PowerPoint and Google Form export, OMR print and camera scan, mock tests and merit lists. It runs fully offline. Gemini AI is optional and is used only to import scanned PDFs and to write new questions.
 
+Live: https://subodhbca-maker.github.io/National-Means-cum-Merit-Scholarship/
+
 ## कैसे चलाएँ / How to run
 
 - **सबसे आसान:** पूरा folder डाउनलोड करें और `index.html` पर double-click करें (Chrome या Edge)। Install करने की ज़रूरत नहीं है।

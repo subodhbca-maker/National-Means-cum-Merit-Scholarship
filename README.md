@@ -18,6 +18,8 @@ A browser app for UP NMMS: paper generator (40% easy / 40% moderate / 20% hard),
 | प्रश्न बैंक | UP NMMS 2023, 2024, 2025 के 466 PYQ (उत्तर सहित; Venn, रिक्त-स्थान श्रेणी और आकृति-संख्या वाले प्रश्न चित्र सहित), कक्षा 7–8 पाठ्यक्रम (और UP पेपरों में आए विषयों) से 827 मूल विज्ञान/सामाजिक प्रश्न, और MAT के 29 व गणित के 20 प्रकार के generator, जिनसे असीमित नए प्रश्न बनते हैं। सारे प्रश्न हिंदी + English में हैं। |
 | चित्र वाले प्रश्न (Figure engine) | Venn आरेख, आकृति श्रेणी, आकृति सादृश्य, भिन्न आकृति, दर्पण व जल प्रतिबिंब, कागज़ मोड़ना-छेद करना, पासा, त्रिभुज गिनना, आकृतियों में संख्या, लुप्त संख्या वाली आकृतियाँ, अक्षर रिक्त-स्थान श्रेणी, और गणित के वृत्त / कोण / निर्देशांक चित्र। हर बार नए चित्र बनते हैं और PDF, PPT, Google Form और मॉक टेस्ट में दिखते हैं। |
 | चित्र दोहराव नहीं | हर चित्र-प्रश्न 14 तरह की आकृतियों, 4 फ्रेम-शैलियों और नियमों के मेल से बनता है (श्रेणी, सादृश्य, भिन्न आकृति, मैट्रिक्स, घन का जाल, वर्ग गिनना आदि)। एक पेपर में एक ही ढाँचा बार-बार नहीं आता, और पिछले पेपरों में आए चित्र अगले मॉक टेस्ट में दोबारा नहीं आते। |
+| पिछले वर्ष के प्रश्न पत्र | UP NMMS 2023, 2024, 2025 और 2027 (1 नवम्बर 2026 को हुई परीक्षा) के पूरे 180-180 प्रश्न, नए सिरे से टाइप और सभी चित्र दोबारा बनाकर — स्कैन कॉपी नहीं। प्रश्न पुस्तिका, उत्तर कुंजी + हल, ऑनलाइन टेस्ट, PPT, Form और OMR। त्रुटिपूर्ण/विवादित प्रश्न उत्तर कुंजी में ✱ से चिह्नित। |
+| हर पेज पर QR कोड | हर छपे पेज पर Basic Pathshala ब्रांडिंग के साथ ऐप लिंक का QR कोड (ऐप में ही बनता है, इंटरनेट नहीं चाहिए)। |
 | UP पेपर जैसी बनावट | MAT के 90 प्रश्न UP बुकलेट के क्रम में: भिन्न पद → सादृश्य → कोडिंग → चिह्न → दिशा/संबंध → श्रेणी → आकृतियाँ → आकृति में संख्या → रिक्त स्थान → Venn → अनुच्छेद। एक जैसे ढाँचे के प्रश्न लगातार नहीं आते। प्रश्न 86–90 का अनुच्छेद पहले UP के मूल अनुच्छेदों से, फिर नए बनाए तर्क-अनुच्छेदों (बैठक व्यवस्था, क्रम/रैंकिंग, समूह) से आता है, और PDF में एक ही बार "निर्देश" के रूप में छपता है। |
 | मूल (PYQ) प्रश्नों का हिस्सा | पेपर बनाते समय "पिछले वर्ष के मूल प्रश्न %" दें (जैसे 10%)। हर पेपर में ठीक उतने UP मूल प्रश्न आते हैं, विषय व कठिनाई का अनुपात वही रहता है, और पहले कम इस्तेमाल हुए प्रश्न पहले आते हैं। |
 | भाषा | हर पेपर/PPT/Form के लिए: हिंदी + English, केवल हिंदी, या English only |
@@ -57,7 +59,11 @@ js/exporters.js       print booklet / answer key, PPT (PptxGenJS), Google Form s
 js/omr.js             OMR sheet drawing + camera scan (marker detection, homography)
 js/ai.js              Gemini (PDF/image extraction, question generation) + offline text parser
 js/pages-*.js, app.js screens and router
-data/pyq-up-*.js      UP NMMS 2023/2024/2025 questions (answers worked out)
+data/pyq-up-*.js      UP NMMS 2023/2024/2025/2027 questions (answers worked out)
+data/pyq-extra.js     the remaining 2023–2025 questions (figures redrawn)
+js/figures-pyq.js     figure generators modelled on UP 2023–2027 figure types
+js/qr.js              QR code encoder (app link on every printed page)
+js/pages-pyq.js       Previous Year Papers section
 data/sat-bank*.js     practice questions for Science & Social Studies (Class 7–8 syllabus)
 js/passage.js         reasoning passage sets (seating / ranking / grouping) for MAT Q86–90
 lib/                  pdf.js, PptxGenJS, SheetJS, jsPDF, html2canvas (bundled for offline use)

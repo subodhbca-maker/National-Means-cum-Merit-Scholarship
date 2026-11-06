@@ -1,6 +1,6 @@
 /* Basic Pathshala - NMMS : app shell, router, first-run seeding */
 (function () {
-  const SEED_VERSION = 3;
+  const SEED_VERSION = 4;
   const view = document.getElementById('view');
   const PAGES = window.PAGES;
 
@@ -8,8 +8,8 @@
     const v = await DB.getSetting('seedVersion', 0);
     if (v >= SEED_VERSION) return;
     const existing = new Set((await DB.all('questions')).map((q) => q.id));
-    const base = [].concat(window.PYQ_UP_2023 || [], window.PYQ_UP_2024 || [], window.PYQ_UP_2025 || [], window.PYQ_FIGURES || [], window.SAT_BANK || [], window.SAT_BANK_2 || [])
-      .filter((q) => !existing.has(q.id)).map(U.normQuestion);
+    const base = [].concat(window.PYQ_UP_2023 || [], window.PYQ_UP_2024 || [], window.PYQ_UP_2025 || [], window.PYQ_FIGURES || [], window.PYQ_UP_2027 || [], window.PYQ_EXTRA || [], window.SAT_BANK || [], window.SAT_BANK_2 || [])
+      .filter((q) => !existing.has(q.id) && q.answer >= 0).map(U.normQuestion);
     const gen = [];
     if (!v) {
       const m = U.splitDifficulty(120), s = U.splitDifficulty(60);
@@ -17,7 +17,7 @@
     }
     await DB.putMany('questions', base.concat(gen));
     await DB.setSetting('seedVersion', SEED_VERSION);
-    if (!v) U.toast(`प्रश्न बैंक तैयार: ${base.length + gen.length} प्रश्न (UP PYQ 2023–2025 सहित)`, 'ok');
+    if (!v) U.toast(`प्रश्न बैंक तैयार: ${base.length + gen.length} प्रश्न (UP PYQ 2023–2027 सहित)`, 'ok');
     else if (base.length) U.toast(`${base.length} नए प्रश्न जोड़े गए (प्रश्न बैंक अपडेट)`, 'ok');
   }
 

@@ -20,7 +20,7 @@
 
   const GENERATABLE = { mat: true, maths: true };
   /* at most this many questions of one figure type in a paper, so no figure style feels repeated */
-  const FIG_CAPS = { figSeries: 3, paperFold: 2, mirrorImage: 2, dice: 1, countTriangles: 1, countSquares: 1, matrix: 1, cubeNet: 1, overlap: 1, missingFigure: 2, figAnalogy: 3, figOdd: 2 };
+  const FIG_CAPS = { figSeries: 3, paperFold: 2, mirrorImage: 2, dice: 1, countTriangles: 1, countSquares: 1, matrix: 1, cubeNet: 1, overlap: 1, missingFigure: 2, figAnalogy: 3, figOdd: 2, numFigure: 2, quadRotate: 1, letterTurn: 1, sidesSeries: 1 };
 
   /* UP MAT booklet order with question counts (out of 90), taken from the 2023–2025 papers */
   const MAT_BLUEPRINT = [
@@ -31,6 +31,7 @@
   const PYQ_RANGES = {
     2023: [[1, 12, 'odd'], [13, 24, 'analogy'], [25, 36, 'ops'], [37, 43, 'coding'], [59, 61, 'figurenum'], [65, 68, 'series'], [70, 77, 'gap'], [78, 85, 'venn'], [86, 90, 'passage']],
     2024: [[1, 12, 'odd'], [13, 27, 'analogy'], [28, 39, 'ops'], [40, 46, 'coding'], [47, 49, 'ops'], [50, 61, 'analogy'], [62, 64, 'figurenum'], [65, 69, 'series'], [70, 77, 'gap'], [78, 85, 'venn'], [86, 90, 'passage']],
+    2027: [[1, 10, 'odd'], [11, 16, 'analogy'], [17, 28, 'coding'], [29, 36, 'ops'], [37, 45, 'analogy'], [55, 57, 'relation'], [58, 59, 'coding'], [60, 60, 'relation'], [67, 67, 'figurenum'], [68, 73, 'series'], [81, 81, 'arith'], [84, 85, 'arith'], [86, 87, 'relation'], [88, 90, 'arith']],
     2025: [[1, 10, 'odd'], [11, 20, 'analogy'], [21, 30, 'coding'], [31, 35, 'ops'], [36, 40, 'relation'], [41, 45, 'series'], [46, 50, 'figure'], [51, 60, 'analogy'], [61, 77, 'figure'], [78, 80, 'arith'], [81, 85, 'arith'], [86, 90, 'passage']]
   };
   const TOPIC_CAT = [[/counting pattern|clock|calendar|age/i, 'arith'], [/venn|diagram/i, 'venn'], [/gap/i, 'gap'], [/odd/i, 'odd'], [/analog/i, 'analogy'], [/cod/i, 'coding'], [/sign|operation|operator/i, 'ops'], [/direction|relation|rank/i, 'relation'],

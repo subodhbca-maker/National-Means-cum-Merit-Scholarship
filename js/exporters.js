@@ -12,8 +12,13 @@
   }
 
   /* bottom-of-page credit used on every document */
+  /* QR code of the app link, printed on every page next to the branding */
+  let qrCache = null;
+  const qrSrc = () => (qrCache = qrCache || (window.QR ? 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(QR.svg(BRAND.url, 120)) : ''));
   function footHtml(right) {
-    return `<div class="foot"><span><img src="${BRAND.logo}" alt="">${esc(BRAND.footer)}</span><span>${esc(right || '')}</span></div>`;
+    const qr = qrSrc();
+    return `<div class="foot"><span class="fl"><img src="${BRAND.logo}" alt="">${esc(BRAND.footer)}</span><span class="fm">${esc(right || '')}</span>` +
+      (qr ? `<span class="fq"><span>ऐप खोलें · Scan to open<br><b>Basic Pathshala NMMS</b></span><img src="${qr}" alt="QR"></span>` : '') + '</div>';
   }
 
   /* a table whose repeating <tfoot> keeps page content clear of the fixed footer on every printed page */
@@ -23,7 +28,7 @@
 
   /* ---------------- printable booklet ---------------- */
   const PRINT_CSS = `
-    @page { size: A4; margin: 12mm 11mm 14mm; }
+    @page { size: A4; margin: 10mm 11mm 8mm; }
     * { box-sizing: border-box; }
     body { font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', 'Segoe UI', Arial, sans-serif; color: #111; font-size: 11.5pt; margin: 0; line-height: 1.35; }
     .hdr { display: flex; align-items: center; gap: 14px; border-bottom: 2.5px solid #1e2a78; padding-bottom: 8px; margin-bottom: 8px; }
@@ -45,8 +50,9 @@
     .opts.long { grid-template-columns: 1fr; }
     .qimg { max-width: 70%; max-height: 55mm; display: block; margin: 4px 0; }
     .fig { display: block; margin: 6px auto 4px; max-width: 100%; max-height: 62mm; }
-    .foot { position: fixed; bottom: 0; left: 0; right: 0; height: 7mm; background: #fff; font-size: 8.5pt; color: #555; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ccc; }
-    table.pgwrap { width: 100%; border-collapse: collapse; } table.pgwrap > * > tr > td { padding: 0; } .footspace { height: 9mm; }
+    .foot { position: fixed; bottom: 0; left: 0; right: 0; height: 13mm; background: #fff; font-size: 8.5pt; color: #555; display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid #ccc; }
+    .foot .fm { flex: 1; text-align: center; } .foot .fq { display: flex; align-items: center; gap: 5px; text-align: right; font-size: 7pt; line-height: 1.25; } .foot .fq img { height: 12mm; width: 12mm; margin: 0; vertical-align: middle; }
+    table.pgwrap { width: 100%; border-collapse: collapse; } table.pgwrap > * > tr > td { padding: 0; } .footspace { height: 15mm; }
     .foot img { height: 13px; vertical-align: -3px; margin-right: 4px; }
     table.key { border-collapse: collapse; width: 100%; font-size: 10pt; }
     table.key td, table.key th { border: 1px solid #888; padding: 3px 4px; text-align: center; }
@@ -107,7 +113,9 @@
           <li>${L('ऋणात्मक अंकन नहीं है।', 'There is no negative marking.')}</li>
           <li>${L('इस पुस्तिका में रफ़ कार्य के अतिरिक्त कुछ न लिखें।', 'Do not write anything in this booklet except rough work.')}</li></ol></div>`;
       // linked questions (a passage followed by its question) print the passage once, as in the real booklet
-      const headOf = (q, l) => { const t = txt(q.q, l), k = t.lastIndexOf('\n'); return k > 0 ? [t.slice(0, k), t.slice(k + 1)] : ['', t]; };
+      // head = text before the last line break (a single-line question is all head), so a direction shared by
+      // consecutive questions — or the same one-line question repeated — prints once
+      const headOf = (q, l) => { const t = txt(q.q, l), k = t.lastIndexOf('\n'); return k > 0 ? [t.slice(0, k), t.slice(k + 1)] : [t, '']; };
       secs.forEach((sec) => {
         body += `<div class="sec">${esc(L(sec.label.hi, sec.label.en))} (Q${paper.startNo + sec.from} – Q${paper.startNo + sec.to})</div>`;
         for (let i = sec.from; i <= sec.to; i++) {
@@ -132,9 +140,10 @@
       const cols = 10;
       let rows = '';
       for (let i = 0; i < paper.questions.length; i += cols) {
-        rows += '<tr>' + paper.questions.slice(i, i + cols).map((q, j) => `<td><b>${paper.startNo + i + j}</b> → ${q.answer >= 0 ? q.answer + 1 : '?'}</td>`).join('') + '</tr>';
+        rows += '<tr>' + paper.questions.slice(i, i + cols).map((q, j) => `<td><b>${paper.startNo + i + j}</b> → ${q.answer >= 0 ? q.answer + 1 : '✱'}</td>`).join('') + '</tr>';
       }
       body += `<table class="key">${rows}</table>`;
+      if (paper.questions.some((q) => q.answer < 0)) body += `<div class="expl">✱ ${esc(L('त्रुटिपूर्ण / विवादित प्रश्न — कोई एक विकल्प पूरी तरह सही नहीं (कारण हल में देखें)।', 'Faulty / disputed question — no single option is fully correct (see the solutions).'))}</div>`;
       if (opts.withExplanation) {
         body += `<div class="title" style="margin-top:14px">${L('हल / व्याख्या', 'Solutions')}</div>`;
         paper.questions.forEach((q, i) => {
@@ -356,7 +365,7 @@ function createNmmsForm() {
       for (let i = 0; i < pages.length; i++) {
         const pg = document.createElement('div');
         pg.style.cssText = 'position:relative;width:794px;height:1123px;padding:40px 38px 60px;background:#fff;box-sizing:border-box;overflow:hidden;';
-        pg.innerHTML = `<style>${PRINT_CSS.replace(/@page[^}]*}/, '').replace(/\.foot[^}]*}/, '')}${css || ''}</style>${pages[i]}<div style="position:absolute;left:38px;right:38px;bottom:22px;font-size:9pt;color:#555;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ccc;padding-top:4px"><span><img src="${BRAND.logo}" style="height:15px;vertical-align:-3px;margin-right:5px">${esc(BRAND.footer)}</span><span>${i + 1} / ${pages.length}</span></div>`;
+        pg.innerHTML = `<style>${PRINT_CSS.replace(/@page[^}]*}/, '').replace(/\.foot[^}]*}/, '')}${css || ''}</style>${pages[i]}<div style="position:absolute;left:38px;right:38px;bottom:14px;font-size:9pt;color:#555;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ccc;padding-top:4px"><span><img src="${BRAND.logo}" style="height:15px;vertical-align:-3px;margin-right:5px">${esc(BRAND.footer)}</span><span style="display:flex;align-items:center;gap:8px">${i + 1} / ${pages.length}${qrSrc() ? `<img src="${qrSrc()}" style="height:44px;width:44px">` : ''}</span></div>`;
         host.appendChild(pg);
         const canvas = await html2canvas(pg, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
         if (i) pdf.addPage();

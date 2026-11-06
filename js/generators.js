@@ -628,7 +628,8 @@
   /* where each generator sits in the UP MAT order (figure generators carry `cat` themselves) */
   const CAT = { numberSeries: 'series', alphaSeries: 'series', letterPosition: 'series', coding: 'coding', numberAnalogy: 'analogy', wordAnalogy: 'analogy', oddOneNumber: 'odd', oddOneLetters: 'odd', wordOdd: 'odd',
     direction: 'relation', ranking: 'relation', bloodRelation: 'relation', clock: 'arith', calendar: 'arith', ages: 'arith', countPattern: 'arith', missingGrid: 'figurenum', operators: 'ops', letterGap: 'gap',
-    figSeries: 'figure', mirrorImage: 'figure', paperFold: 'figure', dice: 'figure', countTriangles: 'figure', figAnalogy: 'analogy', figOdd: 'odd', overlap: 'figurenum', missingFigure: 'figurenum', venn: 'venn' };
+    figSeries: 'figure', mirrorImage: 'figure', paperFold: 'figure', dice: 'figure', countTriangles: 'figure', figAnalogy: 'analogy', figOdd: 'odd', overlap: 'figurenum', missingFigure: 'figurenum', venn: 'venn',
+    numFigure: 'figurenum', quadRotate: 'figure', letterTurn: 'figure', sidesSeries: 'figure' };
   const MATHS_GENS = [percentage, simpleInterest, hcfLcm, linearEq, mensuration, profitLoss, exponents, roots, average, angles, identities, proportion, compoundInterest, probability, quadratic, coordinates, solids].concat(window.FIG ? FIG.MATHS_FIG : []);
 
   const G = {

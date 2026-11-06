@@ -626,6 +626,6 @@
   const MAT_FIG = [figSeries, figAnalogy, figOdd, matrix, cubeNet, countSquares, mirrorImage, paperFold, dice, countTriangles, overlap, missingFigure, venn];
   const MATHS_FIG = [circleAngles, coordFigure, triangleExterior];
   /* the four labelled Venn diagrams of a set, e.g. a previous-year paper's direction figure */
-  const vennSet = (types) => compose(types.map((t, i) => ({ w: VD[t].w, h: 100, label: `(${i + 1})`, inner: `<g fill="none" stroke="#000" stroke-width="2">${VD[t].d}</g>` })), null);
+  const vennSet = (types, labels) => compose(types.map((t, i) => ({ w: VD[t].w, h: 100, label: labels ? labels[i] : `(${i + 1})`, inner: `<g fill="none" stroke="#000" stroke-width="2">${VD[t].d}</g>` })), null);
   window.FIG = { src, toPng, size, MAT_FIG, MATHS_FIG, compose, svg, text: T, vennSet };
 })();
